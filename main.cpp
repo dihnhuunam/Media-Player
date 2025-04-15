@@ -1,6 +1,7 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#include "PlaylistManager.hpp"
 
 int main(int argc, char *argv[])
 {
@@ -9,6 +10,5 @@ int main(int argc, char *argv[])
 
     const QUrl url(QStringLiteral("qrc:/Source/View/Main.qml"));
     engine.load(url);
-
     return app.exec();
 }

@@ -1,65 +1,28 @@
-#include <QMediaPlayer>
-#include <QMediaMetaData>
-#include <QUrl>
-#include <QFileInfo>
-#include <QDebug>
-#include <QTimer>
 #include "MediaFile.hpp"
+#include <QDebug>
+#include <QFileInfo>
+#include <QMediaMetaData>
 
 MediaFile::MediaFile(const QString &filePath, QObject *parent)
     : QObject(parent),
+      m_player(new QMediaPlayer(this)),
       m_filePath(filePath),
       m_title("Unknown Title"),
-      m_author("Unknown Author"),
+      m_artists({"Unknown Artist"}),
       m_duration(0)
 {
-    QFile file(filePath);
-    if (!file.exists())
-    {
-        qDebug() << "Error: File does not exist" << filePath;
-        return;
-    }
-
-    QMediaPlayer *player = new QMediaPlayer(this);
-    player->setSource(QUrl(filePath));
-
-    connect(player, &QMediaPlayer::mediaStatusChanged, this, [=]()
-            {
-        QMediaMetaData metaData = player->metaData();
-        QString newTitle = metaData.stringValue(QMediaMetaData::Title);
-        QString newAuthor = metaData.stringValue(QMediaMetaData::ContributingArtist); 
-                
-        if(!newTitle.isEmpty())
-        {
-            m_title = newTitle;
-        }
-        if(!newAuthor.isEmpty())
-        {
-            m_author = newAuthor;
-        } });
-
-    QTimer::singleShot(500, this, [=]()
-                       {
-        QMediaMetaData metaData = player->metaData();
-        QString newTitle = metaData.stringValue(QMediaMetaData::Title);
-        QString newAuthor = metaData.stringValue(QMediaMetaData::ContributingArtist); 
-                
-        if(!newTitle.isEmpty())
-        {
-            m_title = newTitle;
-        }
-        if(!newAuthor.isEmpty())
-        {
-            m_author = newAuthor;
-        } 
-        if(player->duration() > 0)
-        {
-            m_duration = player->duration();
-        } });
+    m_player->setSource(QUrl::fromLocalFile(m_filePath));
+    connect(m_player, &QMediaPlayer::metaDataChanged, this, &MediaFile::loadMetaData);
+    loadMetaData();
 }
 
 MediaFile::~MediaFile()
 {
+}
+
+QMediaPlayer *MediaFile::player() const
+{
+    return m_player;
 }
 
 QString MediaFile::filePath() const
@@ -72,12 +35,54 @@ QString MediaFile::title() const
     return m_title;
 }
 
-QString MediaFile::author() const
+QString MediaFile::artist() const
 {
-    return m_author;
+    return m_artists.isEmpty() ? "Unknown Artist" : m_artists.join(", ");
+}
+
+QStringList MediaFile::artists() const
+{
+    return m_artists;
 }
 
 qint64 MediaFile::duration() const
 {
     return m_duration;
+}
+
+qreal MediaFile::position() const
+{
+    return m_player->position();
+}
+
+QMediaPlayer::PlaybackState MediaFile::playbackState() const
+{
+    return m_player->playbackState();
+}
+
+void MediaFile::loadMetaData()
+{
+    if (!m_player->metaData().isEmpty())
+    {
+        m_title = m_player->metaData().stringValue(QMediaMetaData::Title);
+        if (m_title.isEmpty())
+        {
+            m_title = QFileInfo(m_filePath).baseName();
+        }
+
+        QVariant artistData = m_player->metaData().stringValue(QMediaMetaData::ContributingArtist);
+        m_artists = artistData.toStringList();
+        if (m_artists.isEmpty())
+        {
+            m_artists << m_player->metaData().stringValue(QMediaMetaData::AlbumArtist);
+        }
+        if (m_artists.isEmpty() || m_artists.first().isEmpty())
+        {
+            m_artists = {"Unknown Artist"};
+        }
+
+        m_duration = m_player->duration();
+        emit metaDataChanged();
+        qDebug() << "Loaded metadata for" << m_filePath << ": title =" << m_title << ", artist =" << artist() << ", duration =" << m_duration;
+    }
 }

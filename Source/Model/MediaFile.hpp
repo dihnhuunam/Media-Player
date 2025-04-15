@@ -3,17 +3,15 @@
 #include <QString>
 #include <QStringList>
 #include <QMediaPlayer>
+#include <QAudioOutput>
 
 class MediaFile : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(QString filePath READ filePath CONSTANT)
-    Q_PROPERTY(QString title READ title NOTIFY metaDataChanged)
-    Q_PROPERTY(QString artist READ artist NOTIFY metaDataChanged)
-    Q_PROPERTY(qint64 duration READ duration NOTIFY metaDataChanged)
 
 private:
     QMediaPlayer *m_player;
+    QAudioOutput *m_audioOutput;
     QString m_filePath;
     QString m_title;
     QStringList m_artists;
@@ -29,12 +27,20 @@ public:
     QString artist() const;
     QStringList artists() const;
     qint64 duration() const;
-    qreal position() const;
+    qint64 position() const;
     QMediaPlayer::PlaybackState playbackState() const;
+
+    Q_INVOKABLE void play();
+    Q_INVOKABLE void pause();
+    Q_INVOKABLE void stop();
 
 signals:
     void metaDataChanged();
+    void playbackStateChanged();
+    void positionChanged(qint64 position);
 
 private slots:
     void loadMetaData();
+    void onPlaybackStateChanged(QMediaPlayer::PlaybackState state);
+    void onPositionChanged(qint64 position);
 };

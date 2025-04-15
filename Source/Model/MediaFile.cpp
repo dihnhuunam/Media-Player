@@ -6,18 +6,23 @@
 MediaFile::MediaFile(const QString &filePath, QObject *parent)
     : QObject(parent),
       m_player(new QMediaPlayer(this)),
+      m_audioOutput(new QAudioOutput(this)),
       m_filePath(filePath),
       m_title("Unknown Title"),
       m_artists({"Unknown Artist"}),
       m_duration(0)
 {
+    m_player->setAudioOutput(m_audioOutput);
     m_player->setSource(QUrl::fromLocalFile(m_filePath));
     connect(m_player, &QMediaPlayer::metaDataChanged, this, &MediaFile::loadMetaData);
+    connect(m_player, &QMediaPlayer::playbackStateChanged, this, &MediaFile::onPlaybackStateChanged);
+    connect(m_player, &QMediaPlayer::positionChanged, this, &MediaFile::onPositionChanged);
     loadMetaData();
 }
 
 MediaFile::~MediaFile()
 {
+    m_player->stop();
 }
 
 QMediaPlayer *MediaFile::player() const
@@ -50,7 +55,7 @@ qint64 MediaFile::duration() const
     return m_duration;
 }
 
-qreal MediaFile::position() const
+qint64 MediaFile::position() const
 {
     return m_player->position();
 }
@@ -58,6 +63,37 @@ qreal MediaFile::position() const
 QMediaPlayer::PlaybackState MediaFile::playbackState() const
 {
     return m_player->playbackState();
+}
+
+void MediaFile::play()
+{
+    if (m_player->playbackState() != QMediaPlayer::PlayingState)
+    {
+        if (m_player->source().isEmpty())
+        {
+            m_player->setSource(QUrl::fromLocalFile(m_filePath));
+        }
+        m_player->play();
+        qDebug() << "Playing:" << m_title;
+    }
+}
+
+void MediaFile::pause()
+{
+    if (m_player->playbackState() == QMediaPlayer::PlayingState)
+    {
+        m_player->pause();
+        qDebug() << "Paused:" << m_title;
+    }
+}
+
+void MediaFile::stop()
+{
+    if (m_player->playbackState() != QMediaPlayer::StoppedState)
+    {
+        m_player->stop();
+        qDebug() << "Stopped:" << m_title;
+    }
 }
 
 void MediaFile::loadMetaData()
@@ -70,7 +106,7 @@ void MediaFile::loadMetaData()
             m_title = QFileInfo(m_filePath).baseName();
         }
 
-        QVariant artistData = m_player->metaData().stringValue(QMediaMetaData::ContributingArtist);
+        QVariant artistData = m_player->metaData().value(QMediaMetaData::ContributingArtist);
         m_artists = artistData.toStringList();
         if (m_artists.isEmpty())
         {
@@ -85,4 +121,15 @@ void MediaFile::loadMetaData()
         emit metaDataChanged();
         qDebug() << "Loaded metadata for" << m_filePath << ": title =" << m_title << ", artist =" << artist() << ", duration =" << m_duration;
     }
+}
+
+void MediaFile::onPlaybackStateChanged(QMediaPlayer::PlaybackState state)
+{
+    emit playbackStateChanged();
+    qDebug() << "Playback state changed for" << m_title << ":" << state;
+}
+
+void MediaFile::onPositionChanged(qint64 position)
+{
+    emit positionChanged(position);
 }

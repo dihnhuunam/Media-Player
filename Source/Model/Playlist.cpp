@@ -1,9 +1,9 @@
-#include <QFileInfo>
 #include "Playlist.hpp"
+#include <QDebug>
 
 Playlist::Playlist(const QString &name, QObject *parent)
-    : m_name(name),
-      QObject(parent)
+    : QObject(parent),
+      m_name(name)
 {
 }
 
@@ -18,7 +18,7 @@ QString Playlist::name() const
 
 void Playlist::setName(const QString &name)
 {
-    if (m_name != name && !name.isEmpty())
+    if (m_name != name)
     {
         m_name = name;
         emit nameChanged();
@@ -27,64 +27,32 @@ void Playlist::setName(const QString &name)
 
 int Playlist::mediaCount() const
 {
-    return m_mediaFiles.count();
+    return m_mediaFiles.size();
 }
 
 QSharedPointer<MediaFile> Playlist::mediaFileAt(int index) const
 {
-    if (index >= 0 && index < m_mediaFiles.count())
+    if (index >= 0 && index < m_mediaFiles.size())
     {
         return m_mediaFiles[index];
     }
     return nullptr;
 }
 
-QString Playlist::mediaNameAt(int index) const
-{
-    if (this->mediaFileAt(index) != nullptr)
-    {
-        return this->mediaFileAt(index)->title() + " - " + this->mediaFileAt(index)->artist();
-    }
-    return "Unkown Media File";
-}
-
-QString Playlist::mediaPathAt(int index) const
-{
-    if (this->mediaFileAt(index) != nullptr)
-        return this->mediaFileAt(index)->filePath();
-    return "Unkown File Path";
-}
-
-QVariantList Playlist::mediaFiles() const
-{
-    QVariantList files;
-    for (const auto &file : m_mediaFiles)
-    {
-        QVariantMap fileData;
-        fileData["title"] = file->title();
-        fileData["artist"] = file->artist();
-        fileData["path"] = file->filePath();
-        fileData["duration"] = file->duration();
-        files.append(fileData);
-    }
-    return files;
-}
-
 void Playlist::addMediaFile(const QString &filePath)
 {
-    QFileInfo fileInfo(filePath);
-    QSharedPointer<MediaFile> newMediaFile = QSharedPointer<MediaFile>::create(filePath);
-    if (fileInfo.exists())
+    if (!filePath.isEmpty())
     {
-        m_mediaFiles.append(newMediaFile);
-        qDebug() << newMediaFile->title() + " - " << newMediaFile->artist() + " - " << newMediaFile->filePath();
+        auto media = QSharedPointer<MediaFile>::create(filePath, this);
+        m_mediaFiles.append(media);
         emit mediaFilesChanged();
+        qDebug() << "Added media to" << m_name << ":" << filePath;
     }
 }
 
 void Playlist::addMediaFiles(const QStringList &filePaths)
 {
-    for (const auto &filePath : filePaths)
+    for (const QString &filePath : filePaths)
     {
         addMediaFile(filePath);
     }
@@ -92,29 +60,10 @@ void Playlist::addMediaFiles(const QStringList &filePaths)
 
 void Playlist::removeMediaFile(int index)
 {
-    if (index >= 0 && index < m_mediaFiles.count())
+    if (index >= 0 && index < m_mediaFiles.size())
     {
         m_mediaFiles.removeAt(index);
         emit mediaFilesChanged();
+        qDebug() << "Removed media at index" << index << "from" << m_name;
     }
-}
-
-QVariantList Playlist::searchMediaFiles(const QString &query)
-{
-    QVariantList results;
-    QString lowerQuery = query.toLower();
-    for (const auto &file : m_mediaFiles)
-    {
-        if (file->title().toLower().contains(lowerQuery) ||
-            file->artist().toLower().contains(lowerQuery))
-        {
-            QVariantMap fileData;
-            fileData["title"] = file->title();
-            fileData["artist"] = file->artist();
-            fileData["path"] = file->filePath();
-            fileData["duration"] = file->duration();
-            results.append(fileData);
-        }
-    }
-    return results;
 }

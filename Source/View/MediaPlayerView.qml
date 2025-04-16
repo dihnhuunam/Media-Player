@@ -13,31 +13,6 @@ Item {
     property bool isPlaying: true
     property real volume: 0
 
-    // Demo Search Properties
-    property var songList: [
-        {
-            title: "Song One",
-            artist: "Artist A"
-        },
-        {
-            title: "Song Two",
-            artist: "Artist B"
-        },
-        {
-            title: "Melody Track",
-            artist: "Artist C"
-        },
-        {
-            title: "Rhythm Song",
-            artist: "Artist A"
-        },
-        {
-            title: "Harmony Beat",
-            artist: "Artist D"
-        }
-    ]
-    property var filteredSongs: songList.length > 0 ? songList : []
-
     // Scale Factor
     readonly property real scaleFactor: Math.min(parent.width / 1024, parent.height / 600)
 
@@ -76,12 +51,38 @@ Item {
     property real searchResultFontSize: 16
     property real searchResultMargin: 10
 
+    // Demo Search Properties
+    property var songList: [
+        {
+            title: "Song One",
+            artist: "Artist A"
+        },
+        {
+            title: "Song Two",
+            artist: "Artist B"
+        },
+        {
+            title: "Melody Track",
+            artist: "Artist C"
+        },
+        {
+            title: "Rhythm Song",
+            artist: "Artist A"
+        },
+        {
+            title: "Harmony Beat",
+            artist: "Artist D"
+        }
+    ]
+    property var filteredSongs: songList.length > 0 ? songList : []
+
     // QML Logic
     FolderDialog {
         id: folderDialog
         title: "Select Media Files Directory"
         onAccepted: {
             let folderPath = folderDialog.currentFolder.toString().replace("file://", "");
+            appController.mediaFileController.loadFolder(folderPath);
             console.log("Selected Folder: ", folderPath);
         }
         onRejected: {

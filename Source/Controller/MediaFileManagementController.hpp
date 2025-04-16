@@ -1,8 +1,7 @@
 #pragma once
 #include <QObject>
-#include <QVariant>
+#include <QVariantList>
 #include "ManagementController.hpp"
-#include "MediaFile.hpp"
 
 class MediaFileManagementController : public ManagementController
 {
@@ -12,9 +11,11 @@ public:
     explicit MediaFileManagementController(QObject *parent = nullptr);
     ~MediaFileManagementController();
 
+    Q_INVOKABLE void loadFolder(const QString &path);
     Q_INVOKABLE QVariantList mediaFiles(const QString &playlistName) const;
-    Q_INVOKABLE QVariantList searchMediaFiles(const QString &query, const QString &playlistName) const;
-    Q_INVOKABLE void loadMediaFiles(const QStringList &filePaths);
-    Q_INVOKABLE void loadFolder(const QString &folderPath);
     Q_INVOKABLE void addFilesToPlaylist(const QStringList &filePaths, const QString &playlistName);
+    Q_INVOKABLE QVariantList searchMediaFiles(const QString &query, const QString &playlistName);
+
+signals:
+    void mediaFilesChanged(const QString &playlistName);
 };

@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Dialogs
 import "Components"
 
 Item {
@@ -32,6 +33,20 @@ Item {
     property int totalPages: Math.ceil(mediaFiles.length / itemsPerPage)
 
     // QML Logic
+    FileDialog {
+        id: fileDialog
+        title: "Select Media Files"
+        nameFilters: ["Media files (*.mp3 *.wav  *.mv4)"]
+        fileMode: FileDialog.OpenFiles
+        onAccepted: {
+            let filePaths = fileDialog.selectedFiles.map(file => file.toString().replace("file://", ""));
+            console.log("Loaded files: ", filePaths.length);
+        }
+        onRejected: {
+            console.log("File selection cancled");
+        }
+    }
+
     function getCurrentPageItems() {
         let startIndex = currentPage * itemsPerPage;
         let endIndex = Math.min(startIndex + itemsPerPage, mediaFiles.length);
@@ -126,6 +141,7 @@ Item {
                     Layout.preferredHeight: topControlButtonSize * scaleFactor
                     flat: true
                     onClicked: {
+                        fileDialog.open();
                         console.log("Add media clicked");
                     }
                     Image {

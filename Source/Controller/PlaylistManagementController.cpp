@@ -10,49 +10,50 @@ PlaylistManagementController::~PlaylistManagementController()
 {
 }
 
-QStringList PlaylistManagementController::playlistNames() const
-{
-    return m_playlistManager->playlistNames();
-}
-
-int PlaylistManagementController::playlistCount() const
-{
-    return m_playlistManager->playlistCount();
-}
-
 void PlaylistManagementController::addPlaylist(const QString &name)
 {
-    if (!name.isEmpty() && !m_playlistManager->playlistNames().contains(name))
+    if (!m_playlistManager || name.isEmpty())
     {
-        m_playlistManager->addPlaylist(name);
-        emit playlistsChanged();
-        qDebug() << "Added playlist:" << name;
+        qDebug() << "Error: Invalid playlist manager or name";
+        return;
     }
+    m_playlistManager->addPlaylist(name);
+    emit playlistsChanged();
+    qDebug() << "Added playlist:" << name;
 }
 
 void PlaylistManagementController::removePlaylist(const QString &name)
 {
-    if (m_playlistManager->playlistNames().contains(name))
+    if (!m_playlistManager || name.isEmpty())
     {
-        m_playlistManager->removePlaylist(name);
-        emit playlistsChanged();
-        qDebug() << "Removed playlist:" << name;
+        qDebug() << "Error: Invalid playlist manager or name";
+        return;
     }
+    m_playlistManager->removePlaylist(name);
+    emit playlistsChanged();
+    qDebug() << "Removed playlist:" << name;
 }
 
 void PlaylistManagementController::renamePlaylist(const QString &oldName, const QString &newName)
 {
-    if (m_playlistManager->playlistNames().contains(oldName) && !newName.isEmpty() && oldName != newName && !m_playlistManager->playlistNames().contains(newName))
+    if (!m_playlistManager || oldName.isEmpty() || newName.isEmpty())
     {
-        m_playlistManager->renamePlaylist(oldName, newName);
-        emit playlistsChanged();
-        qDebug() << "Renamed playlist from" << oldName << "to" << newName;
+        qDebug() << "Error: Invalid playlist manager or names";
+        return;
     }
+    m_playlistManager->renamePlaylist(oldName, newName);
+    emit playlistsChanged();
+    qDebug() << "Renamed playlist from" << oldName << "to" << newName;
 }
 
 QStringList PlaylistManagementController::searchPlaylists(const QString &query)
 {
     QStringList result;
+    if (!m_playlistManager)
+    {
+        qDebug() << "Error: PlaylistManager is null";
+        return result;
+    }
     QString lowerQuery = query.toLower();
     for (const QString &name : m_playlistManager->playlistNames())
     {
@@ -61,10 +62,16 @@ QStringList PlaylistManagementController::searchPlaylists(const QString &query)
             result << name;
         }
     }
+    qDebug() << "Search playlists with query:" << query << "Results:" << result.size();
     return result;
 }
 
 QSharedPointer<Playlist> PlaylistManagementController::getPlaylist(const QString &name) const
 {
+    if (!m_playlistManager)
+    {
+        qDebug() << "Error: PlaylistManager is null";
+        return QSharedPointer<Playlist>();
+    }
     return m_playlistManager->playlist(name);
 }

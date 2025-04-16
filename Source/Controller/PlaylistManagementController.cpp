@@ -1,10 +1,9 @@
 #include "PlaylistManagementController.hpp"
+#include <QDebug>
 
-PlaylistManagementController::PlaylistManagementController(QSharedPointer<PlaylistManager> playlistManager, QObject *parent)
-    : QObject(parent),
-      m_playlistManager(playlistManager)
+PlaylistManagementController::PlaylistManagementController(QObject *parent)
+    : ManagementController(parent)
 {
-    connect(m_playlistManager.data(), &PlaylistManager::playlistsChanged, this, &PlaylistManagementController::playlistsChanged);
 }
 
 PlaylistManagementController::~PlaylistManagementController()
@@ -21,30 +20,51 @@ int PlaylistManagementController::playlistCount() const
     return m_playlistManager->playlistCount();
 }
 
-Q_INVOKABLE void PlaylistManagementController::addPlaylist(const QString &name)
+void PlaylistManagementController::addPlaylist(const QString &name)
 {
-    m_playlistManager->addPlaylist(name);
-}
-
-Q_INVOKABLE void PlaylistManagementController::removePlaylist(const QString &name)
-{
-    m_playlistManager->removePlaylist(name);
-}
-
-Q_INVOKABLE void PlaylistManagementController::renamePlaylist(const QString &oldName, const QString &newName)
-{
-    m_playlistManager->renamePlaylist(oldName, newName);
-}
-
-Q_INVOKABLE QStringList PlaylistManagementController::searchPlaylists(const QString &query)
-{
-    QStringList results;
-    for (auto &name : m_playlistManager->playlistNames())
+    if (!name.isEmpty() && !m_playlistManager->playlistNames().contains(name))
     {
-        if (name.contains(query, Qt::CaseSensitive))
+        m_playlistManager->addPlaylist(name);
+        emit playlistsChanged();
+        qDebug() << "Added playlist:" << name;
+    }
+}
+
+void PlaylistManagementController::removePlaylist(const QString &name)
+{
+    if (m_playlistManager->playlistNames().contains(name))
+    {
+        m_playlistManager->removePlaylist(name);
+        emit playlistsChanged();
+        qDebug() << "Removed playlist:" << name;
+    }
+}
+
+void PlaylistManagementController::renamePlaylist(const QString &oldName, const QString &newName)
+{
+    if (m_playlistManager->playlistNames().contains(oldName) && !newName.isEmpty() && oldName != newName && !m_playlistManager->playlistNames().contains(newName))
+    {
+        m_playlistManager->renamePlaylist(oldName, newName);
+        emit playlistsChanged();
+        qDebug() << "Renamed playlist from" << oldName << "to" << newName;
+    }
+}
+
+QStringList PlaylistManagementController::searchPlaylists(const QString &query)
+{
+    QStringList result;
+    QString lowerQuery = query.toLower();
+    for (const QString &name : m_playlistManager->playlistNames())
+    {
+        if (name.toLower().contains(lowerQuery))
         {
-            results.append(name);
+            result << name;
         }
     }
-    return results;
+    return result;
+}
+
+QSharedPointer<Playlist> PlaylistManagementController::getPlaylist(const QString &name) const
+{
+    return m_playlistManager->playlist(name);
 }

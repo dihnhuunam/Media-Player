@@ -1,9 +1,8 @@
 #include "Playlist.hpp"
-#include <QDebug>
+#include <QFileInfo>
 
 Playlist::Playlist(const QString &name, QObject *parent)
-    : QObject(parent),
-      m_name(name)
+    : QObject(parent), m_name(name)
 {
 }
 
@@ -39,14 +38,19 @@ QSharedPointer<MediaFile> Playlist::mediaFileAt(int index) const
     return nullptr;
 }
 
+QList<QSharedPointer<MediaFile>> Playlist::mediaFiles() const
+{
+    return m_mediaFiles;
+}
+
 void Playlist::addMediaFile(const QString &filePath)
 {
-    if (!filePath.isEmpty())
+    QFileInfo fileInfo(filePath);
+    if (fileInfo.exists())
     {
-        auto media = QSharedPointer<MediaFile>::create(filePath, this);
+        auto media = QSharedPointer<MediaFile>::create(filePath);
         m_mediaFiles.append(media);
         emit mediaFilesChanged();
-        qDebug() << "Added media to" << m_name << ":" << filePath;
     }
 }
 
@@ -64,6 +68,5 @@ void Playlist::removeMediaFile(int index)
     {
         m_mediaFiles.removeAt(index);
         emit mediaFilesChanged();
-        qDebug() << "Removed media at index" << index << "from" << m_name;
     }
 }

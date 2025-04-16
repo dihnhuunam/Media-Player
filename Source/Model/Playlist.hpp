@@ -19,6 +19,7 @@ public:
     void setName(const QString &name);
     int mediaCount() const;
     QSharedPointer<MediaFile> mediaFileAt(int index) const;
+    QList<QSharedPointer<MediaFile>> mediaFiles() const;
 
     Q_INVOKABLE void addMediaFile(const QString &filePath);
     Q_INVOKABLE void addMediaFiles(const QStringList &filePaths);

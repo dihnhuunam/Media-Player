@@ -1,5 +1,6 @@
 add_library(lController
     SHARED 
+        ManagementController.cpp
         PlaylistManagementController.cpp
         MediaFileManagementController.cpp
         PlaybackController.cpp

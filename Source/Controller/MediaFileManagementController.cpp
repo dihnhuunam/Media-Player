@@ -1,99 +1,129 @@
-#include <QDebug>
-#include <QDir>
 #include "MediaFileManagementController.hpp"
+#include <QDir>
+#include <QFileInfo>
+#include <QDebug>
 
-MediaFileManagementController::MediaFileManagementController(QSharedPointer<PlaylistManager> manager, QObject *parent)
-    : QObject(parent),
-      m_playlistManager(manager),
-      m_defaultPlaylistName("Default Playlist")
+MediaFileManagementController::MediaFileManagementController(QObject *parent)
+    : ManagementController(parent)
 {
-    if (!m_playlistManager->playlist(m_defaultPlaylistName))
-    {
-        m_playlistManager->addPlaylist(m_defaultPlaylistName);
-    }
-    connect(m_playlistManager.data(), &PlaylistManager::mediaFilesChanged, this, &MediaFileManagementController::mediaFilesChanged);
 }
 
 MediaFileManagementController::~MediaFileManagementController()
 {
 }
 
-QString MediaFileManagementController::defaultPlaylistName() const
-{
-    return m_defaultPlaylistName;
-}
-
 QVariantList MediaFileManagementController::mediaFiles(const QString &playlistName) const
 {
-    QVariantList results;
-    if (auto playlist = m_playlistManager->playlist(playlistName))
+    QVariantList result;
+    auto playlist = m_playlistManager->playlist(playlistName);
+    if (playlist)
     {
-        for (int i = 0; i < playlist->mediaCount(); ++i)
+        for (const auto &media : playlist->mediaFiles())
         {
-            auto media = playlist->mediaFileAt(i);
-            QVariantMap item;
-            item["title"] = media->title();
-            item["artist"] = media->artist();
-            item["duration"] = media->duration();
-            item["index"] = i;
-            results << item;
+            QVariantMap map;
+            map["title"] = media->title();
+            map["artist"] = media->artist();
+            map["filePath"] = media->filePath();
+            result << map;
         }
     }
-    return results;
+    return result;
 }
 
-QVariantList MediaFileManagementController::searchMediaFiles(const QString &query, const QString &playlistName)
+QVariantList MediaFileManagementController::searchMediaFiles(const QString &query, const QString &playlistName) const
 {
-    QString targetPlaylist = playlistName.isEmpty() ? m_defaultPlaylistName : playlistName;
-    QVariantList results;
-    if (auto playlist = m_playlistManager->playlist(targetPlaylist))
+    QVariantList result;
+    auto playlist = m_playlistManager->playlist(playlistName);
+    if (playlist)
     {
-        for (int i = 0; i < playlist->mediaCount(); ++i)
+        QString lowerQuery = query.toLower();
+        for (const auto &media : playlist->mediaFiles())
         {
-            auto media = playlist->mediaFileAt(i);
-            if (media->title().contains(query, Qt::CaseInsensitive) || media->artist().contains(query, Qt::CaseInsensitive))
+            if (media->title().toLower().contains(lowerQuery) || media->artist().toLower().contains(lowerQuery))
             {
-                QVariantMap item;
-                item["title"] = media->title();
-                item["artist"] = media->artist();
-                item["duration"] = media->duration();
-                item["index"] = i;
-                results << item;
+                QVariantMap map;
+                map["title"] = media->title();
+                map["artist"] = media->artist();
+                map["filePath"] = media->filePath();
+                result << map;
             }
         }
     }
-    qDebug() << "Search media in" << targetPlaylist << "with query" << query << ":" << results.size() << "results";
-    return results;
+    return result;
+}
+
+void MediaFileManagementController::loadMediaFiles(const QStringList &filePaths)
+{
+    QStringList validFormats = {".mp3", ".wav", ".m4a"};
+    for (const QString &filePath : filePaths)
+    {
+        QFileInfo fileInfo(filePath);
+        if (validFormats.contains(fileInfo.suffix().toLower()))
+        {
+            QString playlistName = m_playlistManager->playlistNames().isEmpty() ? "Default" : m_playlistManager->playlistNames().first();
+            if (!m_playlistManager->playlistNames().contains(playlistName))
+            {
+                m_playlistManager->addPlaylist(playlistName);
+            }
+            auto playlist = m_playlistManager->playlist(playlistName);
+            if (playlist)
+            {
+                playlist->addMediaFile(filePath);
+                qDebug() << "Loaded media:" << fileInfo.fileName() << "to playlist:" << playlistName;
+            }
+        }
+    }
 }
 
 void MediaFileManagementController::loadFolder(const QString &folderPath)
 {
     QDir dir(folderPath);
-    if (!dir.exists())
+    dir.setNameFilters({"*.mp3", "*.wav", "*.m4a"});
+    QStringList files;
+    for (const QFileInfo &fileInfo : dir.entryInfoList(QDir::Files))
     {
-        qDebug() << "Folder does not exist:" << folderPath;
-        return;
+        files << fileInfo.absoluteFilePath();
     }
-
-    QStringList filters = {"*.mp3", "*.wav", "*.m4a"};
-    QStringList filePaths;
-    for (const QFileInfo &info : dir.entryInfoList(filters, QDir::Files))
+    if (!files.isEmpty())
     {
-        filePaths << info.absoluteFilePath();
-    }
-
-    if (!filePaths.isEmpty())
-    {
-        m_playlistManager->loadMediaFiles(filePaths, m_defaultPlaylistName);
-        qDebug() << "Loaded" << filePaths.size() << "files from" << folderPath;
+        loadMediaFiles(files);
+        qDebug() << "Loaded" << files.size() << "files from folder:" << folderPath;
     }
 }
 
-void MediaFileManagementController::loadMediaFiles(const QStringList &filePaths)
+void MediaFileManagementController::addFilesToPlaylist(const QStringList &filePaths, const QString &playlistName)
 {
-    if (!filePaths.isEmpty())
+    if (playlistName.isEmpty())
     {
-        m_playlistManager->loadMediaFiles(filePaths, m_defaultPlaylistName);
-        qDebug() << "Loaded" << filePaths.size() << "files";
+        qDebug() << "Error: Playlist name is empty";
+        return;
+    }
+
+    auto playlist = m_playlistManager->playlist(playlistName);
+    if (!playlist)
+    {
+        qDebug() << "Error: Playlist" << playlistName << "does not exist";
+        return;
+    }
+
+    QStringList validFormats = {".mp3", ".wav", ".m4a"};
+    QStringList addedFiles;
+    for (const QString &filePath : filePaths)
+    {
+        QFileInfo fileInfo(filePath);
+        if (validFormats.contains(fileInfo.suffix().toLower()))
+        {
+            playlist->addMediaFile(filePath);
+            addedFiles << fileInfo.fileName();
+        }
+    }
+
+    if (!addedFiles.isEmpty())
+    {
+        qDebug() << "Added" << addedFiles.size() << "files to playlist:" << playlistName << ":" << addedFiles;
+    }
+    else
+    {
+        qDebug() << "No valid media files added to playlist:" << playlistName;
     }
 }

@@ -27,40 +27,45 @@ QSharedPointer<Playlist> PlaylistManager::playlist(const QString &playlistName) 
 
 void PlaylistManager::addPlaylist(const QString &name)
 {
-    if (!name.trimmed().isEmpty() && !m_playlists.contains(name)) {
+    if (!name.trimmed().isEmpty() && !m_playlists.contains(name))
+    {
         m_playlists[name] = QSharedPointer<Playlist>::create(name, this);
         emit playlistsChanged();
-        qDebug() << "Added playlist:" << name;
+        qDebug() << "PlaylistManager::addPlaylist - Added playlist:" << name;
     }
 }
 
 void PlaylistManager::removePlaylist(const QString &name)
 {
-    if (m_playlists.remove(name)) {
+    if (m_playlists.remove(name))
+    {
         emit playlistsChanged();
-        qDebug() << "Removed playlist:" << name;
+        qDebug() << "PlaylistManager::removePlaylist - Removed playlist:" << name;
     }
 }
 
 void PlaylistManager::renamePlaylist(const QString &oldName, const QString &newName)
 {
-    if (!newName.trimmed().isEmpty() && m_playlists.contains(oldName) && !m_playlists.contains(newName)) {
+    if (!newName.trimmed().isEmpty() && m_playlists.contains(oldName) && !m_playlists.contains(newName))
+    {
         auto playlist = m_playlists.take(oldName);
         playlist->setName(newName);
         m_playlists[newName] = playlist;
         emit playlistsChanged();
-        qDebug() << "Renamed playlist from" << oldName << "to" << newName;
+        qDebug() << "PlaylistManager::renamePlaylist - Renamed playlist from" << oldName << "to" << newName;
     }
 }
 
 void PlaylistManager::loadMediaFiles(const QStringList &files, const QString &playlistName)
 {
-    auto playlist = m_playlists.value(playlistName);
-    if (!playlist) {
+    QSharedPointer<Playlist> playlist = m_playlists.value(playlistName);
+    if (!playlist)
+    {
         addPlaylist(playlistName);
         playlist = m_playlists.value(playlistName);
     }
-    if (playlist) {
+    if (playlist)
+    {
         playlist->addMediaFiles(files);
         emit mediaFilesChanged(playlistName);
     }

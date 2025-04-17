@@ -28,22 +28,38 @@ Item {
     // Properties for Pagination
     property int itemsPerPage: 25
     property int currentPage: 0
-    property string playlistName: "Sample Playlist"
+    property string playlistName: "Unknown Playlist"
     property var mediaFiles: []
     property int totalPages: Math.ceil(mediaFiles.length / itemsPerPage)
+    property bool pendingUpdate: false
 
-    // QML Logic
+    Connections {
+        target: appController.playlistController
+        function onMediaFilesChanged(name) {
+            if (name === playlistName) {
+                let previousCount = mediaFiles.length;
+                mediaFiles = appController.playlistController.mediaFiles(playlistName);
+                totalPages = Math.ceil(mediaFiles.length / itemsPerPage);
+                currentPage = Math.min(currentPage, Math.max(0, totalPages - 1));
+                mediaFileView.model = getCurrentPageItems();
+                console.log("Updated media list for playlist:", playlistName, "Total:", mediaFiles.length);
+            }
+        }
+    }
+
     FileDialog {
         id: fileDialog
-        title: "Select Media Files"
-        nameFilters: ["Media files (*.mp3 *.wav  *.mv4)"]
+        title: "Select Music Files"
+        nameFilters: ["Media files (*.mp3 *.wav *.m4a)"]
         fileMode: FileDialog.OpenFiles
         onAccepted: {
             let filePaths = fileDialog.selectedFiles.map(file => file.toString().replace("file://", ""));
-            console.log("Loaded files: ", filePaths.length);
+            pendingUpdate = true;
+            appController.playlistController.addFilesToPlaylist(filePaths, playlistName);
+            console.log("Request to add files to playlist:", playlistName, "Count:", filePaths.length);
         }
         onRejected: {
-            console.log("File selection cancled");
+            console.log("File selection canceled");
         }
     }
 
@@ -51,6 +67,47 @@ Item {
         let startIndex = currentPage * itemsPerPage;
         let endIndex = Math.min(startIndex + itemsPerPage, mediaFiles.length);
         return mediaFiles.slice(startIndex, endIndex);
+    }
+
+    function formatDuration(milliseconds) {
+        if (!milliseconds || milliseconds < 0 || isNaN(milliseconds)) {
+            return "0:00";
+        }
+        let seconds = Math.floor(milliseconds / 1000); // Chuyển từ mili-giây sang giây
+        let minutes = Math.floor(seconds / 60);
+        let secs = Math.floor(seconds % 60);
+        return minutes + ":" + (secs < 10 ? "0" : "") + secs;
+    }
+
+    // Notification Popup
+    Popup {
+        id: notificationPopup
+        x: (parent.width - width) / 2
+        y: (parent.height - height) / 2
+        width: 300 * scaleFactor
+        height: 100 * scaleFactor
+        modal: true
+        focus: true
+        property string text: ""
+        property color color: "#4CAF50"
+
+        background: Rectangle {
+            color: notificationPopup.color
+            radius: 5
+        }
+
+        Text {
+            anchors.centerIn: parent
+            text: notificationPopup.text
+            font.pixelSize: mediaItemFontSize * scaleFactor
+            color: "#FFFFFF"
+        }
+
+        Timer {
+            interval: 2000
+            running: notificationPopup.visible
+            onTriggered: notificationPopup.close()
+        }
     }
 
     Rectangle {
@@ -78,7 +135,7 @@ Item {
                     flat: true
                     onClicked: {
                         stackView.pop();
-                        console.log("Back Button Clicked");
+                        console.log("Back button clicked");
                     }
                     Image {
                         source: "qrc:/Assets/back.png"
@@ -118,18 +175,28 @@ Item {
                         TextInput {
                             id: searchInput
                             Layout.fillWidth: true
-                            text: "Search"
+                            text: "Search Songs"
                             color: "#666666"
                             font.pixelSize: topControlSearchFontSize * scaleFactor
                             onActiveFocusChanged: {
-                                if (activeFocus && text === "Search") {
+                                if (activeFocus && text === "Search Songs") {
                                     text = "";
                                 }
                             }
                             onFocusChanged: {
                                 if (!focus && text === "") {
-                                    text = "Search";
+                                    text = "Search Songs";
                                 }
+                            }
+                            onTextChanged: {
+                                if (text !== "Search Songs" && text.trim() !== "") {
+                                    mediaFiles = appController.playlistController.searchMediaFiles(text, playlistName);
+                                } else {
+                                    mediaFiles = appController.playlistController.mediaFiles(playlistName);
+                                }
+                                totalPages = Math.ceil(mediaFiles.length / itemsPerPage);
+                                currentPage = 0;
+                                mediaFileView.model = getCurrentPageItems();
                             }
                         }
                     }
@@ -174,7 +241,7 @@ Item {
                     Layout.rightMargin: mediaItemMargin * scaleFactor
                 }
 
-                // List of MediaFiles
+                // List of Media Files
                 ListView {
                     id: mediaFileView
                     Layout.fillWidth: true
@@ -194,37 +261,60 @@ Item {
                         height: mediaItemHeight * scaleFactor
                         color: index % 2 === 0 ? "#f0f0f0" : "#ffffff"
 
-                        // Index
-                        Text {
-                            text: (currentPage * itemsPerPage + index + 1).toString()
-                            font.pixelSize: mediaItemFontSize * scaleFactor
-                            color: "#666666"
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.left: parent.left
-                            anchors.leftMargin: mediaItemMargin * scaleFactor
-                        }
+                        RowLayout {
+                            anchors.fill: parent
+                            spacing: mediaSpacing * scaleFactor
 
-                        // Title - Artist
-                        Text {
-                            text: modelData && modelData !== " - " ? modelData : "Unknown - Unknown"
-                            font.pixelSize: mediaItemFontSize * scaleFactor
-                            color: "#333333"
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.left: parent.left
-                            anchors.leftMargin: (mediaItemMargin * 2 + mediaItemFontSize) * scaleFactor
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: {
-                                    console.log("Selected media:", modelData);
+                            // Index
+                            Text {
+                                text: (currentPage * itemsPerPage + index + 1).toString()
+                                font.pixelSize: mediaItemFontSize * scaleFactor
+                                color: "#666666"
+                                Layout.leftMargin: mediaItemMargin * scaleFactor
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+
+                            // Title - Artist
+                            Text {
+                                text: modelData.title + " - " + modelData.artist
+                                font.pixelSize: mediaItemFontSize * scaleFactor
+                                color: "#333333"
+                                Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignVCenter
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: {
+                                        appController.playbackController.playMedia(modelData.path);
+                                        console.log("Selected media:", modelData.title, "Path:", modelData.path);
+                                    }
                                 }
                             }
+
+                            // Duration
+                            Text {
+                                text: formatDuration(modelData.duration)
+                                font.pixelSize: mediaItemFontSize * scaleFactor
+                                color: "#666666"
+                                Layout.rightMargin: mediaItemMargin * scaleFactor
+                                Layout.alignment: Qt.AlignVCenter
+                            }
                         }
+                    }
+
+                    // Placeholder for empty list
+                    Text {
+                        anchors.centerIn: parent
+                        text: "No songs in this playlist"
+                        font.pixelSize: mediaItemFontSize * scaleFactor
+                        color: "#666666"
+                        visible: mediaFiles.length === 0
                     }
                 }
 
                 RowLayout {
                     Layout.alignment: Qt.AlignHCenter
                     spacing: 20 * scaleFactor
+                    visible: mediaFiles.length > 0
 
                     HoverButton {
                         text: "Previous"
@@ -256,6 +346,7 @@ Item {
                         enabled: currentPage < totalPages - 1
                         Layout.preferredWidth: 100 * scaleFactor
                         Layout.preferredHeight: 40 * scaleFactor
+                        objectName: "nextPageButton"
                         contentItem: Text {
                             text: parent.text
                             color: parent.enabled ? "#0078D7" : "#666666"

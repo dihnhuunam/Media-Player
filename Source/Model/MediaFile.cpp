@@ -74,7 +74,7 @@ void MediaFile::play()
             m_player->setSource(QUrl::fromLocalFile(m_filePath));
         }
         m_player->play();
-        qDebug() << "Playing:" << m_title;
+        qDebug() << "MediaFile::play - Playing:" << m_title;
     }
 }
 
@@ -83,7 +83,7 @@ void MediaFile::pause()
     if (m_player->playbackState() == QMediaPlayer::PlayingState)
     {
         m_player->pause();
-        qDebug() << "Paused:" << m_title;
+        qDebug() << "MediaFile::pause - Paused:" << m_title;
     }
 }
 
@@ -92,7 +92,7 @@ void MediaFile::stop()
     if (m_player->playbackState() != QMediaPlayer::StoppedState)
     {
         m_player->stop();
-        qDebug() << "Stopped:" << m_title;
+        qDebug() << "MediaFile::stop - Stopped:" << m_title;
     }
 }
 
@@ -119,14 +119,14 @@ void MediaFile::loadMetaData()
 
         m_duration = m_player->duration();
         emit metaDataChanged();
-        qDebug() << "Loaded metadata for" << m_filePath << ": title =" << m_title << ", artist =" << artist() << ", duration =" << m_duration;
+        qDebug() << "MediaFile::loadMetaData - Loaded metadata for" << m_filePath << ": title =" << m_title << ", artist =" << artist() << ", duration =" << m_duration;
     }
 }
 
 void MediaFile::onPlaybackStateChanged(QMediaPlayer::PlaybackState state)
 {
     emit playbackStateChanged();
-    qDebug() << "Playback state changed for" << m_title << ":" << state;
+    qDebug() << "MediaFile::onPlaybackStateChanged - Playback state changed for" << m_title << ":" << state;
 }
 
 void MediaFile::onPositionChanged(qint64 position)

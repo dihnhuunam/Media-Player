@@ -82,11 +82,11 @@ Item {
         title: "Select Media Files Directory"
         onAccepted: {
             let folderPath = folderDialog.currentFolder.toString().replace("file://", "");
-            appController.mediaFileController.loadFolder(folderPath);
-            console.log("Selected Folder: ", folderPath);
+            appController.playlistController.loadFolder(folderPath);
+            console.log("FolderDialog::folderDialog - Selected Folder: ", folderPath);
         }
         onRejected: {
-            console.log("Folder Selection Canceled");
+            console.log("FolderDialog::folderDialog - Folder Selection Canceled");
         }
     }
 

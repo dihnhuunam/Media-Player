@@ -24,12 +24,17 @@ Item {
     property real playlistItemMargin: 30
     property real playlistSpacing: 6
 
-    // Sample Data
-    property var playlists: {
-        "Sample Playlist": ["Song 1 - Artist A", "Song 2 - Artist B", "Song 3 - Artist C"],
-        "Rock Playlist": ["Rock Song 1 - Band X", "Rock Song 2 - Band Y"],
-        "Pop Playlist": ["Pop Song 1 - Singer Z"],
-        "Jazz Playlist": ["Jazz Track 1 - Musician M", "Jazz Track 2 - Musician N"]
+    Connections {
+        target: appController.playlistController
+
+        function onPlaylistsChanged() {
+            searchInput.text = "";
+            playlistView.model = appController.playlistController.playlistNames;
+        }
+
+        function onMediaFilesChanged(playlistName) {
+            console.log("Media files changed for playlist:", playlistName);
+        }
     }
 
     Rectangle {
@@ -118,6 +123,13 @@ Item {
                                     text = "Search Playlists";
                                 }
                             }
+                            onTextChanged: {
+                                if (text !== "Search Playlists" && text.trim() !== "") {
+                                    playlistView.model = appController.playlistController.searchPlaylists(text);
+                                } else {
+                                    playlistView.model = appController.playlistController.playlistNames;
+                                }
+                            }
                         }
                     }
                 }
@@ -152,7 +164,7 @@ Item {
                 Layout.alignment: Qt.AlignHCenter
                 clip: true
                 interactive: true
-                model: Object.keys(playlists)
+                model: appController.playlistController.playlistNames
                 cacheBuffer: 2000
                 maximumFlickVelocity: 4000
                 flickDeceleration: 1500
@@ -186,9 +198,10 @@ Item {
                                 anchors.fill: parent
                                 onClicked: {
                                     stackView.push("qrc:/Source/View/MediaFileView.qml", {
-                                        "mediaFiles": playlists[modelData]
+                                        "mediaFiles": appController.playlistController.mediaFiles(modelData),
+                                        "playlistName": modelData
                                     });
-                                    console.log("Clicked playlist:", modelData, "Songs:", playlists[modelData]);
+                                    console.log("Clicked playlist:", modelData);
                                 }
                             }
                         }
@@ -201,6 +214,7 @@ Item {
                             flat: true
                             onClicked: {
                                 popup.playlistName = modelData;
+                                renameField.text = modelData;
                                 popup.open();
                             }
                             Image {
@@ -275,11 +289,9 @@ Item {
                         verticalAlignment: Text.AlignVCenter
                     }
                     onClicked: {
-                        if (newPlaylistNameField.text.trim() !== "" && !(newPlaylistNameField.text.trim() in playlists)) {
-                            let newPlaylists = Object.assign({}, playlists);
-                            newPlaylists[newPlaylistNameField.text.trim()] = [];
-                            playlists = newPlaylists;
-                            console.log("Added playlist:", newPlaylistNameField.text.trim());
+                        var name = newPlaylistNameField.text.trim();
+                        if (name !== "") {
+                            appController.playlistController.addPlaylist(name);
                             addPlaylistPopup.close();
                             newPlaylistNameField.text = "";
                         }
@@ -348,12 +360,9 @@ Item {
                         verticalAlignment: Text.AlignVCenter
                     }
                     onClicked: {
-                        if (renameField.text.trim() !== "" && !(renameField.text.trim() in playlists)) {
-                            let newPlaylists = Object.assign({}, playlists);
-                            newPlaylists[renameField.text.trim()] = newPlaylists[popup.playlistName];
-                            delete newPlaylists[popup.playlistName];
-                            playlists = newPlaylists;
-                            console.log("Renamed playlist from", popup.playlistName, "to", renameField.text.trim());
+                        var newName = renameField.text.trim();
+                        if (newName !== "" && newName !== popup.playlistName) {
+                            appController.playlistController.renamePlaylist(popup.playlistName, newName);
                             popup.close();
                         }
                     }
@@ -376,10 +385,7 @@ Item {
                         verticalAlignment: Text.AlignVCenter
                     }
                     onClicked: {
-                        let newPlaylists = Object.assign({}, playlists);
-                        delete newPlaylists[popup.playlistName];
-                        playlists = newPlaylists;
-                        console.log("Deleted playlist:", popup.playlistName);
+                        appController.playlistController.removePlaylist(popup.playlistName);
                         popup.close();
                     }
                 }

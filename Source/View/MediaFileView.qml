@@ -204,7 +204,7 @@ Item {
                             color: "#666666"
                             font.pixelSize: topControlSearchFontSize * scaleFactor
                             onActiveFocusChanged: {
-                                if (activeFocus && text === "Search презентация Songs") {
+                                if (activeFocus && text === "Search Songs") {
                                     text = "";
                                 }
                             }

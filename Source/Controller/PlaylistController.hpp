@@ -2,6 +2,7 @@
 #include <QObject>
 #include <QSharedPointer>
 #include <QVariantList>
+#include <QMap>
 #include "PlaylistManager.hpp"
 #include "Playlist.hpp"
 
@@ -13,6 +14,7 @@ class PlaylistController : public QObject
 
 private:
     QSharedPointer<PlaylistManager> m_playlistManager;
+    QMap<QString, int> m_pendingMetadataCount; // Theo dõi số lượng media chờ metadata cho mỗi playlist
 
 public:
     explicit PlaylistController(QObject *parent = nullptr);
@@ -38,4 +40,8 @@ public:
 signals:
     void playlistsChanged();
     void mediaFilesChanged(const QString &playlistName);
+    void mediaFilesLoaded(const QString &playlistName); // Tín hiệu khi tất cả metadata đã tải
+
+private slots:
+    void onMediaMetaDataChanged(const QString &playlistName, QSharedPointer<MediaFile> mediaFile);
 };

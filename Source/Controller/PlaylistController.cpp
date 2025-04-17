@@ -32,7 +32,7 @@ int PlaylistController::playlistCount() const
     return m_playlistManager->playlistCount();
 }
 
-void PlaylistController::addPlaylist(const QString &name)
+Q_INVOKABLE void PlaylistController::addPlaylist(const QString &name)
 {
     if (!m_playlistManager || name.isEmpty())
     {
@@ -44,7 +44,7 @@ void PlaylistController::addPlaylist(const QString &name)
     qDebug() << "PlaylistController::addPlaylist - Added playlist:" << name;
 }
 
-void PlaylistController::removePlaylist(const QString &name)
+Q_INVOKABLE void PlaylistController::removePlaylist(const QString &name)
 {
     if (!m_playlistManager || name.isEmpty())
     {
@@ -56,7 +56,7 @@ void PlaylistController::removePlaylist(const QString &name)
     qDebug() << "PlaylistController::removePlaylist - Removed playlist:" << name;
 }
 
-void PlaylistController::renamePlaylist(const QString &oldName, const QString &newName)
+Q_INVOKABLE void PlaylistController::renamePlaylist(const QString &oldName, const QString &newName)
 {
     if (!m_playlistManager || oldName.isEmpty() || newName.isEmpty())
     {
@@ -68,7 +68,7 @@ void PlaylistController::renamePlaylist(const QString &oldName, const QString &n
     qDebug() << "PlaylistController::renamePlaylist - Renamed playlist from" << oldName << "to" << newName;
 }
 
-QStringList PlaylistController::searchPlaylists(const QString &query)
+Q_INVOKABLE QStringList PlaylistController::searchPlaylists(const QString &query)
 {
     QStringList result;
     if (!m_playlistManager)
@@ -88,7 +88,7 @@ QStringList PlaylistController::searchPlaylists(const QString &query)
     return result;
 }
 
-QSharedPointer<Playlist> PlaylistController::getPlaylist(const QString &name) const
+Q_INVOKABLE QSharedPointer<Playlist> PlaylistController::getPlaylist(const QString &name) const
 {
     if (!m_playlistManager)
     {
@@ -98,7 +98,7 @@ QSharedPointer<Playlist> PlaylistController::getPlaylist(const QString &name) co
     return m_playlistManager->playlist(name);
 }
 
-void PlaylistController::loadFolder(const QString &path)
+Q_INVOKABLE void PlaylistController::loadFolder(const QString &path)
 {
     if (!m_playlistManager || path.isEmpty())
     {
@@ -126,7 +126,21 @@ void PlaylistController::loadFolder(const QString &path)
 
     if (!filePaths.isEmpty())
     {
+        // Khởi tạo bộ đếm cho playlist
+        m_pendingMetadataCount["Default"] = filePaths.size();
+
         m_playlistManager->loadMediaFiles(filePaths, "Default");
+        auto playlist = m_playlistManager->playlist("Default");
+        if (playlist)
+        {
+            for (const auto &mediaFile : playlist->mediaFiles())
+            {
+                connect(mediaFile.data(), &MediaFile::metaDataChanged, this,
+                        [this, playlistName = QString("Default"), mediaFile]()
+                        { onMediaMetaDataChanged(playlistName, mediaFile); });
+            }
+        }
+
         emit mediaFilesChanged("Default");
         qDebug() << "PlaylistController::loadFolder - Loaded" << filePaths.size() << "files from folder:" << path << "with absolute paths";
     }
@@ -136,7 +150,7 @@ void PlaylistController::loadFolder(const QString &path)
     }
 }
 
-QVariantList PlaylistController::mediaFiles(const QString &playlistName) const
+Q_INVOKABLE QVariantList PlaylistController::mediaFiles(const QString &playlistName) const
 {
     QVariantList result;
     if (!m_playlistManager)
@@ -162,7 +176,7 @@ QVariantList PlaylistController::mediaFiles(const QString &playlistName) const
     return result;
 }
 
-void PlaylistController::addFilesToPlaylist(const QStringList &filePaths, const QString &playlistName)
+Q_INVOKABLE void PlaylistController::addFilesToPlaylist(const QStringList &filePaths, const QString &playlistName)
 {
     if (!m_playlistManager || filePaths.isEmpty() || playlistName.isEmpty())
     {
@@ -177,12 +191,27 @@ void PlaylistController::addFilesToPlaylist(const QStringList &filePaths, const 
         absoluteFilePaths << fileInfo.absoluteFilePath();
     }
 
+    // Khởi tạo bộ đếm cho playlist
+    m_pendingMetadataCount[playlistName] = absoluteFilePaths.size();
+
+    // Thêm tệp và kết nối tín hiệu metaDataChanged
     m_playlistManager->loadMediaFiles(absoluteFilePaths, playlistName);
+    auto playlist = m_playlistManager->playlist(playlistName);
+    if (playlist)
+    {
+        for (const auto &mediaFile : playlist->mediaFiles())
+        {
+            connect(mediaFile.data(), &MediaFile::metaDataChanged, this,
+                    [this, playlistName, mediaFile]()
+                    { onMediaMetaDataChanged(playlistName, mediaFile); });
+        }
+    }
+
     emit mediaFilesChanged(playlistName);
     qDebug() << "PlaylistController::addFilesToPlaylist - Added" << absoluteFilePaths.size() << "files to playlist:" << playlistName << "with absolute paths";
 }
 
-QVariantList PlaylistController::searchMediaFiles(const QString &query, const QString &playlistName)
+Q_INVOKABLE QVariantList PlaylistController::searchMediaFiles(const QString &query, const QString &playlistName)
 {
     QVariantList result;
     if (!m_playlistManager)
@@ -212,4 +241,21 @@ QVariantList PlaylistController::searchMediaFiles(const QString &query, const QS
     }
     qDebug() << "PlaylistController::searchMediaFiles - Search media files in" << playlistName << "with query:" << query << "Results:" << result.size();
     return result;
+}
+
+void PlaylistController::onMediaMetaDataChanged(const QString &playlistName, QSharedPointer<MediaFile> mediaFile)
+{
+    if (m_pendingMetadataCount.contains(playlistName))
+    {
+        m_pendingMetadataCount[playlistName]--;
+        qDebug() << "PlaylistController::onMediaMetaDataChanged - Metadata loaded for" << mediaFile->filePath()
+                 << "in playlist:" << playlistName << ", remaining:" << m_pendingMetadataCount[playlistName];
+
+        if (m_pendingMetadataCount[playlistName] <= 0)
+        {
+            m_pendingMetadataCount.remove(playlistName);
+            emit mediaFilesLoaded(playlistName);
+            qDebug() << "PlaylistController::onMediaMetaDataChanged - All metadata loaded for playlist:" << playlistName;
+        }
+    }
 }

@@ -32,17 +32,31 @@ Item {
     property var mediaFiles: []
     property int totalPages: Math.ceil(mediaFiles.length / itemsPerPage)
     property bool pendingUpdate: false
+    property bool isLoading: false // Trạng thái tải metadata
 
     Connections {
         target: appController.playlistController
         function onMediaFilesChanged(name) {
             if (name === playlistName) {
+                isLoading = true; // Bắt đầu trạng thái tải
                 let previousCount = mediaFiles.length;
                 mediaFiles = appController.playlistController.mediaFiles(playlistName);
                 totalPages = Math.ceil(mediaFiles.length / itemsPerPage);
                 currentPage = Math.min(currentPage, Math.max(0, totalPages - 1));
-                mediaFileView.model = getCurrentPageItems();
+                if (!isLoading) {
+                    mediaFileView.model = getCurrentPageItems();
+                }
                 console.log("Updated media list for playlist:", playlistName, "Total:", mediaFiles.length);
+            }
+        }
+        function onMediaFilesLoaded(name) {
+            if (name === playlistName) {
+                isLoading = false; // Kết thúc trạng thái tải
+                mediaFiles = appController.playlistController.mediaFiles(playlistName); // Làm mới dữ liệu
+                totalPages = Math.ceil(mediaFiles.length / itemsPerPage);
+                currentPage = Math.min(currentPage, Math.max(0, totalPages - 1));
+                mediaFileView.model = getCurrentPageItems();
+                console.log("All metadata loaded for playlist:", playlistName);
             }
         }
     }
@@ -55,6 +69,7 @@ Item {
         onAccepted: {
             let filePaths = fileDialog.selectedFiles.map(file => file.toString().replace("file://", ""));
             pendingUpdate = true;
+            isLoading = true; // Bắt đầu trạng thái tải khi thêm tệp
             appController.playlistController.addFilesToPlaylist(filePaths, playlistName);
             console.log("Request to add files to playlist:", playlistName, "Count:", filePaths.length);
         }
@@ -73,7 +88,7 @@ Item {
         if (!milliseconds || milliseconds < 0 || isNaN(milliseconds)) {
             return "0:00";
         }
-        let seconds = Math.floor(milliseconds / 1000); // Chuyển từ mili-giây sang giây
+        let seconds = Math.floor(milliseconds / 1000);
         let minutes = Math.floor(seconds / 60);
         let secs = Math.floor(seconds % 60);
         return minutes + ":" + (secs < 10 ? "0" : "") + secs;
@@ -114,9 +129,19 @@ Item {
         anchors.fill: parent
         color: "#ffffff"
 
+        // Hiển thị trạng thái tải
+        Text {
+            anchors.centerIn: parent
+            text: "Loading media files..."
+            font.pixelSize: mediaItemFontSize * scaleFactor
+            color: "#666666"
+            visible: isLoading
+        }
+
         ColumnLayout {
             anchors.fill: parent
             spacing: mediaSpacing * scaleFactor
+            visible: !isLoading // Chỉ hiển thị khi không đang tải
 
             // Top Controls
             RowLayout {
@@ -179,7 +204,7 @@ Item {
                             color: "#666666"
                             font.pixelSize: topControlSearchFontSize * scaleFactor
                             onActiveFocusChanged: {
-                                if (activeFocus && text === "Search Songs") {
+                                if (activeFocus && text === "Search презентация Songs") {
                                     text = "";
                                 }
                             }
@@ -307,14 +332,14 @@ Item {
                         text: "No songs in this playlist"
                         font.pixelSize: mediaItemFontSize * scaleFactor
                         color: "#666666"
-                        visible: mediaFiles.length === 0
+                        visible: mediaFiles.length === 0 && !isLoading
                     }
                 }
 
                 RowLayout {
                     Layout.alignment: Qt.AlignHCenter
                     spacing: 20 * scaleFactor
-                    visible: mediaFiles.length > 0
+                    visible: mediaFiles.length > 0 && !isLoading
 
                     HoverButton {
                         text: "Previous"
@@ -346,7 +371,6 @@ Item {
                         enabled: currentPage < totalPages - 1
                         Layout.preferredWidth: 100 * scaleFactor
                         Layout.preferredHeight: 40 * scaleFactor
-                        objectName: "nextPageButton"
                         contentItem: Text {
                             text: parent.text
                             color: parent.enabled ? "#0078D7" : "#666666"

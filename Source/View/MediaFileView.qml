@@ -35,13 +35,13 @@ Item {
     property bool isLoading: false
 
     Connections {
-        target: appController.playlistController
+        target: appController && appController.playlistController ? appController.playlistController : null
 
         function onMediaFilesChanged(name) {
             if (name === playlistName) {
                 isLoading = true;
                 let previousCount = mediaFiles.length;
-                mediaFiles = appController.playlistController.mediaFiles(playlistName);
+                mediaFiles = appController && appController.playlistController ? appController.playlistController.mediaFiles(playlistName) : [];
                 totalPages = Math.ceil(mediaFiles.length / itemsPerPage);
                 currentPage = Math.min(currentPage, Math.max(0, totalPages - 1));
                 if (!isLoading) {
@@ -54,7 +54,7 @@ Item {
         function onMediaFilesLoaded(name) {
             if (name === playlistName) {
                 isLoading = false;
-                mediaFiles = appController.playlistController.mediaFiles(playlistName);
+                mediaFiles = appController && appController.playlistController ? appController.playlistController.mediaFiles(playlistName) : [];
                 totalPages = Math.ceil(mediaFiles.length / itemsPerPage);
                 currentPage = Math.min(currentPage, Math.max(0, totalPages - 1));
                 mediaFileView.model = getCurrentPageItems();
@@ -69,11 +69,13 @@ Item {
         nameFilters: ["Media files (*.mp3 *.wav *.m4a)"]
         fileMode: FileDialog.OpenFiles
         onAccepted: {
-            let filePaths = fileDialog.selectedFiles.map(file => file.toString().replace("file://", ""));
-            pendingUpdate = true;
-            isLoading = true;
-            appController.playlistController.addFilesToPlaylist(filePaths, playlistName);
-            console.log("Request to add files to playlist:", playlistName, "Count:", filePaths.length);
+            if (appController && appController.playlistController) {
+                let filePaths = fileDialog.selectedFiles.map(file => file.toString().replace("file://", ""));
+                pendingUpdate = true;
+                isLoading = true;
+                appController.playlistController.addFilesToPlaylist(filePaths, playlistName);
+                console.log("Request to add files to playlist:", playlistName, "Count:", filePaths.length);
+            }
         }
         onRejected: {
             console.log("File selection canceled");
@@ -94,6 +96,24 @@ Item {
         let minutes = Math.floor(seconds / 60);
         let secs = Math.floor(seconds % 60);
         return minutes + ":" + (secs < 10 ? "0" : "") + secs;
+    }
+
+    // Debounce timer for search
+    Timer {
+        id: searchDebounceTimer
+        interval: 200 // Wait 200ms before triggering search
+        repeat: false
+        onTriggered: {
+            if (searchInput.text !== "Search Songs" && searchInput.text.trim() !== "" && appController && appController.playlistController) {
+                mediaFiles = appController.playlistController.searchMediaFiles(searchInput.text, playlistName);
+            } else {
+                mediaFiles = appController && appController.playlistController ? appController.playlistController.mediaFiles(playlistName) : [];
+            }
+            totalPages = Math.ceil(mediaFiles.length / itemsPerPage);
+            currentPage = 0;
+            mediaFileView.model = getCurrentPageItems();
+            console.log("Search query:", searchInput.text, "Results:", mediaFiles.length);
+        }
     }
 
     // Notification Popup
@@ -216,14 +236,7 @@ Item {
                                 }
                             }
                             onTextChanged: {
-                                if (text !== "Search Songs" && text.trim() !== "") {
-                                    mediaFiles = appController.playlistController.searchMediaFiles(text, playlistName);
-                                } else {
-                                    mediaFiles = appController.playlistController.mediaFiles(playlistName);
-                                }
-                                totalPages = Math.ceil(mediaFiles.length / itemsPerPage);
-                                currentPage = 0;
-                                mediaFileView.model = getCurrentPageItems();
+                                searchDebounceTimer.restart();
                             }
                         }
                     }
@@ -311,14 +324,16 @@ Item {
                                 MouseArea {
                                     anchors.fill: parent
                                     onClicked: {
-                                        let playlist = appController.playlistController.getPlaylist(playlistName);
-                                        appController.playbackController.playMedia(playlist, currentPage * itemsPerPage + index);
-                                        stackView.push("qrc:/Source/View/MediaPlayerView.qml", {
-                                            "playlistName": playlistName,
-                                            "title": modelData.title,
-                                            "artist": modelData.artist
-                                        });
-                                        console.log("Selected media:", modelData.title, "Path:", modelData.path, "Navigated to MediaPlayerView");
+                                        if (appController && appController.playlistController && appController.playbackController) {
+                                            let playlist = appController.playlistController.getPlaylist(playlistName);
+                                            appController.playbackController.playMedia(playlist, currentPage * itemsPerPage + index);
+                                            stackView.push("qrc:/Source/View/MediaPlayerView.qml", {
+                                                "playlistName": playlistName,
+                                                "title": modelData.title,
+                                                "artist": modelData.artist
+                                            });
+                                            console.log("Selected media:", modelData.title, "Path:", modelData.path, "Navigated to MediaPlayerView");
+                                        }
                                     }
                                 }
                             }
@@ -341,6 +356,18 @@ Item {
                         font.pixelSize: mediaItemFontSize * scaleFactor
                         color: "#666666"
                         visible: mediaFiles.length === 0 && !isLoading
+                    }
+
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: 200
+                        }
+                    }
+
+                    Behavior on height {
+                        NumberAnimation {
+                            duration: 200
+                        }
                     }
                 }
 
@@ -394,6 +421,14 @@ Item {
                     }
                 }
             }
+        }
+    }
+
+    // Log when component is completed to debug initialization
+    Component.onCompleted: {
+        console.log("MediaFileView: Component completed, appController exists:", appController !== null);
+        if (!appController || !appController.playlistController) {
+            console.log("MediaFileView: Warning - appController or playlistController is null");
         }
     }
 }

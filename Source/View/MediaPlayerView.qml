@@ -5,10 +5,10 @@ import QtQuick.Dialogs
 import "Components"
 
 Item {
-    // Properties from Model with null checks
-    property string playlistName: appController && appController.playbackController ? appController.playbackController.currentPlaylistName : ""
-    property string title: appController && appController.playbackController ? appController.playbackController.currentMediaTitle : ""
-    property string artist: appController && appController.playbackController ? appController.playbackController.currentMediaArtist : ""
+    // Properties from Model with null checks and default values
+    property string playlistName: appController && appController.playbackController && appController.playbackController.currentPlaylistName ? appController.playbackController.currentPlaylistName : "Unknown Playlist"
+    property string title: appController && appController.playbackController && appController.playbackController.currentMediaTitle ? appController.playbackController.currentMediaTitle : "Unknown Title"
+    property string artist: appController && appController.playbackController && appController.playbackController.currentMediaArtist ? appController.playbackController.currentMediaArtist : "Unknown Artist"
     property string playTime: appController && appController.playbackController ? formatDuration(appController.playbackController.position) : "0:00"
     property bool isPlaying: appController && appController.playbackController ? appController.playbackController.playbackState === 1 : false // 1 là PlayingState
     property real volume: appController && appController.playbackController ? appController.playbackController.volume / 100.0 : 0.5
@@ -67,14 +67,32 @@ Item {
         return minutes + ":" + (secs < 10 ? "0" : "") + secs;
     }
 
+    // Debounce timer for search
+    Timer {
+        id: searchDebounceTimer
+        interval: 200 // Wait 200ms before triggering search
+        repeat: false
+        onTriggered: {
+            if (searchInput.text !== "Search" && searchInput.text !== "" && appController && appController.playlistController) {
+                filteredSongs = appController.playlistController.searchMediaFiles(searchInput.text);
+                searchResultsView.visible = searchInput.activeFocus && filteredSongs.length > 0;
+                console.log("Search query:", searchInput.text, "Results:", filteredSongs.length);
+            } else {
+                filteredSongs = [];
+                searchResultsView.visible = false;
+                console.log("Reset search results");
+            }
+        }
+    }
+
     // Only connect signals when appController and playbackController are available
     Connections {
         target: appController && appController.playbackController ? appController.playbackController : null
         function onCurrentMediaChanged() {
             if (appController && appController.playbackController) {
-                playlistName = appController.playbackController.currentPlaylistName;
-                title = appController.playbackController.currentMediaTitle;
-                artist = appController.playbackController.currentMediaArtist;
+                playlistName = appController.playbackController.currentPlaylistName || "Unknown Playlist";
+                title = appController.playbackController.currentMediaTitle || "Unknown Title";
+                artist = appController.playbackController.currentMediaArtist || "Unknown Artist";
                 progressSlider.maxValue = appController.playbackController.currentMediaDuration;
                 console.log("Current media changed:", title, "Artist:", artist, "Playlist:", playlistName);
             }
@@ -236,15 +254,7 @@ Item {
                                 }
                             }
                             onTextChanged: {
-                                if (text !== "Search" && text !== "" && appController && appController.playlistController) {
-                                    filteredSongs = appController.playlistController.searchMediaFiles(text);
-                                    searchResultsView.visible = activeFocus && filteredSongs.length > 0;
-                                    console.log("Search query:", text, "Results:", filteredSongs.length);
-                                } else {
-                                    filteredSongs = [];
-                                    searchResultsView.visible = false;
-                                    console.log("Reset search results");
-                                }
+                                searchDebounceTimer.restart();
                             }
                             onAccepted: {
                                 if (filteredSongs.length > 0 && appController && appController.playlistController && appController.playbackController) {
@@ -280,21 +290,14 @@ Item {
                     border.color: "#e0e0e0"
                     border.width: 1
 
-                    RowLayout {
+                    Text {
                         anchors.fill: parent
                         anchors.margins: searchResultMargin * scaleFactor
-                        Text {
-                            text: modelData.title
-                            font.pixelSize: searchResultFontSize * scaleFactor
-                            color: "#333333"
-                            Layout.fillWidth: true
-                            elide: Text.ElideRight
-                        }
-                        Text {
-                            text: modelData.artist
-                            font.pixelSize: searchResultFontSize * scaleFactor
-                            color: "#666666"
-                        }
+                        text: modelData.playlistName + " - " + modelData.title + " - " + modelData.artist
+                        font.pixelSize: searchResultFontSize * scaleFactor
+                        color: "#333333"
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
                     }
 
                     MouseArea {
@@ -322,6 +325,12 @@ Item {
                 }
 
                 Behavior on opacity {
+                    NumberAnimation {
+                        duration: 200
+                    }
+                }
+
+                Behavior on height {
                     NumberAnimation {
                         duration: 200
                     }

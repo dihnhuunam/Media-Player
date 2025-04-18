@@ -28,7 +28,6 @@ Item {
         target: appController.playlistController
 
         function onPlaylistsChanged() {
-            searchInput.text = "";
             playlistView.model = appController.playlistController.playlistNames;
         }
 

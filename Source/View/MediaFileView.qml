@@ -32,13 +32,14 @@ Item {
     property var mediaFiles: []
     property int totalPages: Math.ceil(mediaFiles.length / itemsPerPage)
     property bool pendingUpdate: false
-    property bool isLoading: false // Trạng thái tải metadata
+    property bool isLoading: false
 
     Connections {
         target: appController.playlistController
+
         function onMediaFilesChanged(name) {
             if (name === playlistName) {
-                isLoading = true; // Bắt đầu trạng thái tải
+                isLoading = true;
                 let previousCount = mediaFiles.length;
                 mediaFiles = appController.playlistController.mediaFiles(playlistName);
                 totalPages = Math.ceil(mediaFiles.length / itemsPerPage);
@@ -49,10 +50,11 @@ Item {
                 console.log("Updated media list for playlist:", playlistName, "Total:", mediaFiles.length);
             }
         }
+
         function onMediaFilesLoaded(name) {
             if (name === playlistName) {
-                isLoading = false; // Kết thúc trạng thái tải
-                mediaFiles = appController.playlistController.mediaFiles(playlistName); // Làm mới dữ liệu
+                isLoading = false;
+                mediaFiles = appController.playlistController.mediaFiles(playlistName);
                 totalPages = Math.ceil(mediaFiles.length / itemsPerPage);
                 currentPage = Math.min(currentPage, Math.max(0, totalPages - 1));
                 mediaFileView.model = getCurrentPageItems();
@@ -69,7 +71,7 @@ Item {
         onAccepted: {
             let filePaths = fileDialog.selectedFiles.map(file => file.toString().replace("file://", ""));
             pendingUpdate = true;
-            isLoading = true; // Bắt đầu trạng thái tải khi thêm tệp
+            isLoading = true;
             appController.playlistController.addFilesToPlaylist(filePaths, playlistName);
             console.log("Request to add files to playlist:", playlistName, "Count:", filePaths.length);
         }

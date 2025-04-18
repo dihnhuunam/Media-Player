@@ -126,7 +126,6 @@ Q_INVOKABLE void PlaylistController::loadFolder(const QString &path)
 
     if (!filePaths.isEmpty())
     {
-        // Khởi tạo bộ đếm cho playlist
         m_pendingMetadataCount["Default"] = filePaths.size();
 
         m_playlistManager->loadMediaFiles(filePaths, "Default");
@@ -191,11 +190,9 @@ Q_INVOKABLE void PlaylistController::addFilesToPlaylist(const QStringList &fileP
         absoluteFilePaths << fileInfo.absoluteFilePath();
     }
 
-    // Khởi tạo bộ đếm cho playlist
     m_pendingMetadataCount[playlistName] = absoluteFilePaths.size();
-
-    // Thêm tệp và kết nối tín hiệu metaDataChanged
     m_playlistManager->loadMediaFiles(absoluteFilePaths, playlistName);
+
     auto playlist = m_playlistManager->playlist(playlistName);
     if (playlist)
     {

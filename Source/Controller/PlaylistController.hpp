@@ -14,7 +14,7 @@ class PlaylistController : public QObject
 
 private:
     QSharedPointer<PlaylistManager> m_playlistManager;
-    QMap<QString, int> m_pendingMetadataCount; // Theo dõi số lượng media chờ metadata cho mỗi playlist
+    QMap<QString, int> m_pendingMetadataCount;
 
 public:
     explicit PlaylistController(QObject *parent = nullptr);
@@ -29,18 +29,18 @@ public:
 
     // Media file management methods
     Q_INVOKABLE void loadFolder(const QString &path);
-    Q_INVOKABLE QVariantList mediaFiles(const QString &playlistName) const;
     Q_INVOKABLE void addFilesToPlaylist(const QStringList &filePaths, const QString &playlistName);
+    Q_INVOKABLE QVariantList mediaFiles(const QString &playlistName) const;
     Q_INVOKABLE QVariantList searchMediaFiles(const QString &query, const QString &playlistName);
 
-    // Property accessors
+    // Property getters
     QStringList playlistNames() const;
     int playlistCount() const;
 
 signals:
     void playlistsChanged();
     void mediaFilesChanged(const QString &playlistName);
-    void mediaFilesLoaded(const QString &playlistName); // Tín hiệu khi tất cả metadata đã tải
+    void mediaFilesLoaded(const QString &playlistName);
 
 private slots:
     void onMediaMetaDataChanged(const QString &playlistName, QSharedPointer<MediaFile> mediaFile);

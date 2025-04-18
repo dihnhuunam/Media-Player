@@ -311,8 +311,14 @@ Item {
                                 MouseArea {
                                     anchors.fill: parent
                                     onClicked: {
-                                        appController.playbackController.playMedia(modelData.path);
-                                        console.log("Selected media:", modelData.title, "Path:", modelData.path);
+                                        let playlist = appController.playlistController.getPlaylist(playlistName);
+                                        appController.playbackController.playMedia(playlist, currentPage * itemsPerPage + index);
+                                        stackView.push("qrc:/Source/View/MediaPlayerView.qml", {
+                                            "playlistName": playlistName,
+                                            "title": modelData.title,
+                                            "artist": modelData.artist
+                                        });
+                                        console.log("Selected media:", modelData.title, "Path:", modelData.path, "Navigated to MediaPlayerView");
                                     }
                                 }
                             }

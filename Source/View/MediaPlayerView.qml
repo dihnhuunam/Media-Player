@@ -5,13 +5,16 @@ import QtQuick.Dialogs
 import "Components"
 
 Item {
-    // Properties from Model
-    property string playlistName: "Unknown Playlist"
-    property string title: "Unknown Title"
-    property string artist: "Unknown Artist"
-    property string playTime: "00:00"
-    property bool isPlaying: true
-    property real volume: 0
+    // Properties from Model with null checks
+    property string playlistName: appController && appController.playbackController ? appController.playbackController.currentPlaylistName : ""
+    property string title: appController && appController.playbackController ? appController.playbackController.currentMediaTitle : ""
+    property string artist: appController && appController.playbackController ? appController.playbackController.currentMediaArtist : ""
+    property string playTime: appController && appController.playbackController ? formatDuration(appController.playbackController.position) : "0:00"
+    property bool isPlaying: appController && appController.playbackController ? appController.playbackController.playbackState === 1 : false // 1 là PlayingState
+    property real volume: appController && appController.playbackController ? appController.playbackController.volume / 100.0 : 0.5
+    property bool shuffle: appController && appController.playbackController ? appController.playbackController.shuffle : false
+    property int repeatMode: appController && appController.playbackController ? appController.playbackController.repeatMode : 0
+    property bool muted: appController && appController.playbackController ? appController.playbackController.muted : false
 
     // Scale Factor
     readonly property real scaleFactor: Math.min(parent.width / 1024, parent.height / 600)
@@ -43,7 +46,7 @@ Item {
     property real volumeSliderWidth: 100
     property real volumeSliderHeight: 24
     property real volumeSpacing: 8
-    property real previousVolume: 1.0
+    property real previousVolume: 0.5 // Default to 50%
 
     // Search Results Properties
     property real searchResultMaxHeight: 300
@@ -51,39 +54,78 @@ Item {
     property real searchResultFontSize: 16
     property real searchResultMargin: 10
 
-    // Demo Search Properties
-    property var songList: [
-        {
-            title: "Song One",
-            artist: "Artist A"
-        },
-        {
-            title: "Song Two",
-            artist: "Artist B"
-        },
-        {
-            title: "Melody Track",
-            artist: "Artist C"
-        },
-        {
-            title: "Rhythm Song",
-            artist: "Artist A"
-        },
-        {
-            title: "Harmony Beat",
-            artist: "Artist D"
+    // Search Results
+    property var filteredSongs: []
+
+    function formatDuration(milliseconds) {
+        if (!milliseconds || milliseconds < 0 || isNaN(milliseconds)) {
+            return "0:00";
         }
-    ]
-    property var filteredSongs: songList.length > 0 ? songList : []
+        let seconds = Math.floor(milliseconds / 1000);
+        let minutes = Math.floor(seconds / 60);
+        let secs = Math.floor(seconds % 60);
+        return minutes + ":" + (secs < 10 ? "0" : "") + secs;
+    }
+
+    // Only connect signals when appController and playbackController are available
+    Connections {
+        target: appController && appController.playbackController ? appController.playbackController : null
+        function onCurrentMediaChanged() {
+            if (appController && appController.playbackController) {
+                playlistName = appController.playbackController.currentPlaylistName;
+                title = appController.playbackController.currentMediaTitle;
+                artist = appController.playbackController.currentMediaArtist;
+                progressSlider.maxValue = appController.playbackController.currentMediaDuration;
+                console.log("Current media changed:", title, "Artist:", artist, "Playlist:", playlistName);
+            }
+        }
+        function onPlaybackStateChanged() {
+            if (appController && appController.playbackController) {
+                isPlaying = appController.playbackController.playbackState === 1; // 1 là PlayingState
+                console.log("Playback state changed:", isPlaying ? "Playing" : "Paused/Stopped");
+            }
+        }
+        function onPositionChanged() {
+            if (appController && appController.playbackController) {
+                playTime = formatDuration(appController.playbackController.position);
+                progressSlider.value = appController.playbackController.position;
+            }
+        }
+        function onVolumeChanged() {
+            if (appController && appController.playbackController) {
+                volume = appController.playbackController.volume / 100.0;
+            }
+        }
+        function onShuffleChanged() {
+            if (appController && appController.playbackController) {
+                shuffle = appController.playbackController.shuffle;
+                console.log("Shuffle changed:", shuffle);
+            }
+        }
+        function onRepeatModeChanged() {
+            if (appController && appController.playbackController) {
+                repeatMode = appController.playbackController.repeatMode;
+                console.log("Repeat mode changed:", repeatMode);
+            }
+        }
+        function onMutedChanged() {
+            if (appController && appController.playbackController) {
+                muted = appController.playbackController.muted;
+                console.log("Muted changed:", muted);
+            }
+        }
+    }
 
     // QML Logic
     FolderDialog {
         id: folderDialog
         title: "Select Media Files Directory"
         onAccepted: {
-            let folderPath = folderDialog.currentFolder.toString().replace("file://", "");
-            appController.playlistController.loadFolder(folderPath);
-            console.log("FolderDialog::folderDialog - Selected Folder: ", folderPath);
+            if (appController && appController.playlistController) {
+                let folderPath = folderDialog.currentFolder.toString().replace("file://", "");
+                appController.playlistController.loadFolder(folderPath);
+                console.log("FolderDialog::folderDialog - Selected Folder: ", folderPath);
+            }
         }
         onRejected: {
             console.log("FolderDialog::folderDialog - Folder Selection Canceled");
@@ -194,28 +236,25 @@ Item {
                                 }
                             }
                             onTextChanged: {
-                                if (text !== "Search" && text !== "") {
-                                    let query = text.toLowerCase();
-                                    filteredSongs = songList.filter(song => song.title.toLowerCase().includes(query) || song.artist.toLowerCase().includes(query));
-                                    if (activeFocus && filteredSongs.length > 0) {
-                                        searchResultsView.visible = true;
-                                    } else {
-                                        searchResultsView.visible = false;
-                                    }
+                                if (text !== "Search" && text !== "" && appController && appController.playlistController) {
+                                    filteredSongs = appController.playlistController.searchMediaFiles(text);
+                                    searchResultsView.visible = activeFocus && filteredSongs.length > 0;
                                     console.log("Search query:", text, "Results:", filteredSongs.length);
                                 } else {
-                                    filteredSongs = songList;
+                                    filteredSongs = [];
                                     searchResultsView.visible = false;
-                                    console.log("Reset search results, count:", filteredSongs.length);
+                                    console.log("Reset search results");
                                 }
                             }
                             onAccepted: {
-                                if (filteredSongs.length > 0) {
-                                    title = filteredSongs[0].title;
-                                    artist = filteredSongs[0].artist;
-                                    searchResultsView.visible = false;
-                                    searchInput.focus = false;
-                                    console.log("Selected first result, title:", title);
+                                if (filteredSongs.length > 0 && appController && appController.playlistController && appController.playbackController) {
+                                    let playlist = appController.playlistController.getPlaylist(filteredSongs[0].playlistName);
+                                    if (playlist) {
+                                        appController.playbackController.playMedia(playlist, filteredSongs[0].index);
+                                        searchResultsView.visible = false;
+                                        searchInput.focus = false;
+                                        console.log("Selected first result, title:", filteredSongs[0].title);
+                                    }
                                 }
                             }
                         }
@@ -269,11 +308,15 @@ Item {
                             parent.color = "#ffffff";
                         }
                         onClicked: {
-                            title = modelData.title;
-                            artist = modelData.artist;
-                            searchResultsView.visible = false;
-                            searchInput.focus = false;
-                            console.log("Selected search result, title:", modelData.title, "artist:", modelData.artist);
+                            if (appController && appController.playlistController && appController.playbackController) {
+                                let playlist = appController.playlistController.getPlaylist(modelData.playlistName);
+                                if (playlist) {
+                                    appController.playbackController.playMedia(playlist, modelData.index);
+                                    searchResultsView.visible = false;
+                                    searchInput.focus = false;
+                                    console.log("Selected search result, title:", modelData.title, "artist:", modelData.artist);
+                                }
+                            }
                         }
                     }
                 }
@@ -285,7 +328,7 @@ Item {
                 }
 
                 onVisibleChanged: {
-                    opacity = visible ? 1.0 : 0.0;
+                    opacity = visible ? 1.0 : 0.5;
                 }
 
                 onModelChanged: {
@@ -330,7 +373,7 @@ Item {
             Text {
                 id: timeText
                 Layout.alignment: Qt.AlignHCenter
-                text: playTime
+                text: playTime + " / " + (appController && appController.playbackController ? formatDuration(appController.playbackController.currentMediaDuration) : "0:00")
                 font.pixelSize: songInfoTimeSize * scaleFactor
                 color: "#666666"
             }
@@ -340,13 +383,19 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 30 * scaleFactor
                 minValue: 0.0
-                maxValue: 1.0
-                step: 0.01
+                maxValue: appController && appController.playbackController ? appController.playbackController.currentMediaDuration : 0
+                step: 100
+                value: appController && appController.playbackController ? appController.playbackController.position : 0
                 backgroundColor: "#cccccc"
                 fillColor: "#000000"
                 handleColor: "#ffffff"
                 handlePressedColor: "#000000"
                 borderColor: "#000000"
+                onValueChanged: {
+                    if (pressed && appController && appController.playbackController) {
+                        appController.playbackController.setPosition(value);
+                    }
+                }
             }
         }
 
@@ -363,13 +412,17 @@ Item {
                 Layout.preferredHeight: controlButtonSize * scaleFactor
                 flat: true
                 onClicked: {
-                    console.log("Shuffle Button Clicked");
+                    if (appController && appController.playbackController) {
+                        appController.playbackController.setShuffle(!shuffle);
+                        console.log("Shuffle Button Clicked, enabled:", !shuffle);
+                    }
                 }
                 Image {
                     anchors.centerIn: parent
                     source: "qrc:/Assets/shuffle.png"
                     width: controlIconSize * scaleFactor
                     height: controlIconSize * scaleFactor
+                    opacity: shuffle ? 1.0 : 0.5 // Show when active, partially visible when inactive
                 }
             }
 
@@ -378,7 +431,10 @@ Item {
                 Layout.preferredHeight: controlButtonSize * scaleFactor
                 flat: true
                 onClicked: {
-                    console.log("Previous Button Clicked");
+                    if (appController && appController.playbackController) {
+                        appController.playbackController.previous();
+                        console.log("Previous Button Clicked");
+                    }
                 }
                 Image {
                     anchors.centerIn: parent
@@ -395,8 +451,14 @@ Item {
                 flat: true
                 property string imageSource: isPlaying ? "qrc:/Assets/pause.png" : "qrc:/Assets/play.png"
                 onClicked: {
-                    isPlaying = !isPlaying;
-                    console.log(isPlaying ? "Play Button Clicked" : "Pause Button Clicked");
+                    if (appController && appController.playbackController) {
+                        if (isPlaying) {
+                            appController.playbackController.pause();
+                        } else {
+                            appController.playbackController.play();
+                        }
+                        console.log(isPlaying ? "Pause Button Clicked" : "Play Button Clicked");
+                    }
                 }
                 Image {
                     anchors.centerIn: parent
@@ -411,7 +473,10 @@ Item {
                 Layout.preferredHeight: controlButtonSize * scaleFactor
                 flat: true
                 onClicked: {
-                    console.log("Next Button Clicked");
+                    if (appController && appController.playbackController) {
+                        appController.playbackController.next();
+                        console.log("Next Button Clicked");
+                    }
                 }
                 Image {
                     anchors.centerIn: parent
@@ -426,13 +491,18 @@ Item {
                 Layout.preferredHeight: controlButtonSize * scaleFactor
                 flat: true
                 onClicked: {
-                    console.log("Repeat Button Clicked");
+                    if (appController && appController.playbackController) {
+                        let newMode = (repeatMode + 1) % 3; // Cycle through 0, 1, 2
+                        appController.playbackController.setRepeatMode(newMode);
+                        console.log("Repeat Button Clicked, mode:", newMode);
+                    }
                 }
                 Image {
                     anchors.centerIn: parent
-                    source: "qrc:/Assets/repeat.png"
+                    source: repeatMode === 1 ? "qrc:/Assets/repeat-one.png" : "qrc:/Assets/repeat.png"
                     width: controlIconSize * scaleFactor
                     height: controlIconSize * scaleFactor
+                    opacity: repeatMode > 0 ? 1.0 : 0.5 // Show when active, partially visible when inactive
                 }
             }
         }
@@ -450,13 +520,21 @@ Item {
                 Layout.preferredHeight: volumeIconSize * scaleFactor
                 flat: true
                 onClicked: {
-                    volume = (volume === 0) ? previousVolume : 0;
-                    previousVolume = (volume === 0) ? previousVolume : volume;
-                    console.log("Volume Button Clicked, volume:", volume);
+                    if (appController && appController.playbackController) {
+                        if (muted) {
+                            appController.playbackController.setMuted(false);
+                            appController.playbackController.setVolume(previousVolume * 100);
+                        } else {
+                            previousVolume = volume > 0 ? volume : previousVolume;
+                            appController.playbackController.setVolume(0);
+                            appController.playbackController.setMuted(true);
+                        }
+                        console.log("Volume Button Clicked, muted:", muted, "volume:", volume);
+                    }
                 }
                 Image {
                     anchors.centerIn: parent
-                    source: volume === 0 ? "qrc:/Assets/muted.png" : "qrc:/Assets/volume.png"
+                    source: muted || volume === 0 ? "qrc:/Assets/muted.png" : "qrc:/Assets/volume.png"
                     width: volumeIconSize * scaleFactor
                     height: volumeIconSize * scaleFactor
                 }
@@ -471,7 +549,14 @@ Item {
                 step: 0.1
                 value: volume
                 onValueChanged: {
-                    volume = value;
+                    if (appController && appController.playbackController && value !== volume) {
+                        volume = value;
+                        appController.playbackController.setVolume(value * 100);
+                        if (value > 0 && muted) {
+                            appController.playbackController.setMuted(false);
+                        }
+                        previousVolume = value > 0 ? value : previousVolume;
+                    }
                 }
                 backgroundColor: "#cccccc"
                 fillColor: "#000000"
@@ -485,7 +570,7 @@ Item {
             anchors.fill: parent
             z: 0
             propagateComposedEvents: true
-            onPressed: {
+            onPressed: function (mouse) {
                 if (!searchResultsView.contains(Qt.point(mouse.x - searchResultsView.x, mouse.y - searchResultsView.y)) && !searchInput.contains(Qt.point(mouse.x - searchInput.x, mouse.y - searchInput.y))) {
                     searchInput.focus = false;
                     searchResultsView.visible = false;
@@ -493,6 +578,14 @@ Item {
                 }
                 mouse.accepted = false;
             }
+        }
+    }
+
+    // Log when component is completed to debug initialization
+    Component.onCompleted: {
+        console.log("MediaPlayerView: Component completed, appController exists:", appController !== null);
+        if (!appController || !appController.playbackController) {
+            console.log("MediaPlayerView: Warning - appController or playbackController is null");
         }
     }
 }

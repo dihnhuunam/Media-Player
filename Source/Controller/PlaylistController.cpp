@@ -6,10 +6,31 @@
 PlaylistController::PlaylistController(QObject *parent)
     : QObject(parent), m_playlistManager(new PlaylistManager(this))
 {
+    qDebug() << "PlaylistController: Created";
 }
 
 PlaylistController::~PlaylistController()
 {
+    qDebug() << "PlaylistController: Destroying";
+    // Disconnect all signals from PlaylistManager and its playlists
+    if (m_playlistManager)
+    {
+        disconnect(m_playlistManager.data(), nullptr, this, nullptr);
+        for (const QString &playlistName : m_playlistManager->playlistNames())
+        {
+            auto playlist = m_playlistManager->playlist(playlistName);
+            if (playlist)
+            {
+                for (const auto &mediaFile : playlist->mediaFiles())
+                {
+                    disconnect(mediaFile.data(), nullptr, this, nullptr);
+                }
+            }
+        }
+    }
+    m_playlistManager.reset();
+    m_pendingMetadataCount.clear();
+    qDebug() << "PlaylistController: Destroyed";
 }
 
 QStringList PlaylistController::playlistNames() const
@@ -32,7 +53,7 @@ int PlaylistController::playlistCount() const
     return m_playlistManager->playlistCount();
 }
 
-Q_INVOKABLE void PlaylistController::addPlaylist(const QString &name)
+void PlaylistController::addPlaylist(const QString &name)
 {
     if (!m_playlistManager || name.isEmpty())
     {
@@ -44,7 +65,7 @@ Q_INVOKABLE void PlaylistController::addPlaylist(const QString &name)
     qDebug() << "PlaylistController::addPlaylist - Added playlist:" << name;
 }
 
-Q_INVOKABLE void PlaylistController::removePlaylist(const QString &name)
+void PlaylistController::removePlaylist(const QString &name)
 {
     if (!m_playlistManager || name.isEmpty())
     {
@@ -56,7 +77,7 @@ Q_INVOKABLE void PlaylistController::removePlaylist(const QString &name)
     qDebug() << "PlaylistController::removePlaylist - Removed playlist:" << name;
 }
 
-Q_INVOKABLE void PlaylistController::renamePlaylist(const QString &oldName, const QString &newName)
+void PlaylistController::renamePlaylist(const QString &oldName, const QString &newName)
 {
     if (!m_playlistManager || oldName.isEmpty() || newName.isEmpty())
     {
@@ -68,7 +89,7 @@ Q_INVOKABLE void PlaylistController::renamePlaylist(const QString &oldName, cons
     qDebug() << "PlaylistController::renamePlaylist - Renamed playlist from" << oldName << "to" << newName;
 }
 
-Q_INVOKABLE QStringList PlaylistController::searchPlaylists(const QString &query)
+QStringList PlaylistController::searchPlaylists(const QString &query)
 {
     QStringList result;
     if (!m_playlistManager)
@@ -88,7 +109,7 @@ Q_INVOKABLE QStringList PlaylistController::searchPlaylists(const QString &query
     return result;
 }
 
-Q_INVOKABLE QSharedPointer<Playlist> PlaylistController::getPlaylist(const QString &name) const
+QSharedPointer<Playlist> PlaylistController::getPlaylist(const QString &name) const
 {
     if (!m_playlistManager)
     {
@@ -98,7 +119,7 @@ Q_INVOKABLE QSharedPointer<Playlist> PlaylistController::getPlaylist(const QStri
     return m_playlistManager->playlist(name);
 }
 
-Q_INVOKABLE void PlaylistController::loadFolder(const QString &path)
+void PlaylistController::loadFolder(const QString &path)
 {
     if (!m_playlistManager || path.isEmpty())
     {
@@ -149,7 +170,7 @@ Q_INVOKABLE void PlaylistController::loadFolder(const QString &path)
     }
 }
 
-Q_INVOKABLE QVariantList PlaylistController::mediaFiles(const QString &playlistName) const
+QVariantList PlaylistController::mediaFiles(const QString &playlistName) const
 {
     QVariantList result;
     if (!m_playlistManager)
@@ -175,7 +196,7 @@ Q_INVOKABLE QVariantList PlaylistController::mediaFiles(const QString &playlistN
     return result;
 }
 
-Q_INVOKABLE void PlaylistController::addFilesToPlaylist(const QStringList &filePaths, const QString &playlistName)
+void PlaylistController::addFilesToPlaylist(const QStringList &filePaths, const QString &playlistName)
 {
     if (!m_playlistManager || filePaths.isEmpty() || playlistName.isEmpty())
     {
@@ -208,7 +229,7 @@ Q_INVOKABLE void PlaylistController::addFilesToPlaylist(const QStringList &fileP
     qDebug() << "PlaylistController::addFilesToPlaylist - Added" << absoluteFilePaths.size() << "files to playlist:" << playlistName << "with absolute paths";
 }
 
-Q_INVOKABLE QVariantList PlaylistController::searchMediaFiles(const QString &query, const QString &playlistName)
+QVariantList PlaylistController::searchMediaFiles(const QString &query, const QString &playlistName)
 {
     QVariantList result;
     if (!m_playlistManager)
@@ -237,6 +258,42 @@ Q_INVOKABLE QVariantList PlaylistController::searchMediaFiles(const QString &que
         }
     }
     qDebug() << "PlaylistController::searchMediaFiles - Search media files in" << playlistName << "with query:" << query << "Results:" << result.size();
+    return result;
+}
+
+QVariantList PlaylistController::searchMediaFiles(const QString &query)
+{
+    QVariantList result;
+    if (!m_playlistManager)
+    {
+        qDebug() << "PlaylistController::searchMediaFiles - Error: PlaylistManager is null";
+        return result;
+    }
+
+    QString lowerQuery = query.toLower();
+    for (const QString &playlistName : m_playlistManager->playlistNames())
+    {
+        auto playlist = m_playlistManager->playlist(playlistName);
+        int index = 0;
+        for (const auto &mediaFile : playlist->mediaFiles())
+        {
+            QString title = mediaFile->title().toLower();
+            QString artist = mediaFile->artist().toLower();
+            if (title.contains(lowerQuery) || artist.contains(lowerQuery))
+            {
+                QVariantMap fileData;
+                fileData["title"] = mediaFile->title();
+                fileData["artist"] = mediaFile->artist();
+                fileData["path"] = mediaFile->filePath();
+                fileData["duration"] = mediaFile->duration();
+                fileData["playlistName"] = playlistName;
+                fileData["index"] = index;
+                result << fileData;
+            }
+            index++;
+        }
+    }
+    qDebug() << "PlaylistController::searchMediaFiles - Global search with query:" << query << "Results:" << result.size();
     return result;
 }
 

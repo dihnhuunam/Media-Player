@@ -32,7 +32,7 @@ public:
     Q_INVOKABLE void addFilesToPlaylist(const QStringList &filePaths, const QString &playlistName);
     Q_INVOKABLE QVariantList mediaFiles(const QString &playlistName) const;
     Q_INVOKABLE QVariantList searchMediaFiles(const QString &query, const QString &playlistName);
-    Q_INVOKABLE QVariantList searchMediaFiles(const QString &query); // New method for global search
+    Q_INVOKABLE QVariantList searchMediaFiles(const QString &query);
 
     // Property getters
     QStringList playlistNames() const;

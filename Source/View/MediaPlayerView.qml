@@ -10,7 +10,7 @@ Item {
     property string title: appController && appController.playbackController && appController.playbackController.currentMediaTitle ? appController.playbackController.currentMediaTitle : "Unknown Title"
     property string artist: appController && appController.playbackController && appController.playbackController.currentMediaArtist ? appController.playbackController.currentMediaArtist : "Unknown Artist"
     property string playTime: appController && appController.playbackController ? formatDuration(appController.playbackController.position) : "0:00"
-    property bool isPlaying: appController && appController.playbackController ? appController.playbackController.playbackState === 1 : false // 1 là PlayingState
+    property bool isPlaying: appController && appController.playbackController ? appController.playbackController.playbackState === 1 : false
     property real volume: appController && appController.playbackController ? appController.playbackController.volume / 100.0 : 0.5
     property bool shuffle: appController && appController.playbackController ? appController.playbackController.shuffle : false
     property int repeatMode: appController && appController.playbackController ? appController.playbackController.repeatMode : 0
@@ -46,7 +46,7 @@ Item {
     property real volumeSliderWidth: 100
     property real volumeSliderHeight: 24
     property real volumeSpacing: 8
-    property real previousVolume: 0.5 // Default to 50%
+    property real previousVolume: 0.5
 
     // Search Results Properties
     property real searchResultMaxHeight: 300
@@ -70,7 +70,7 @@ Item {
     // Debounce timer for search
     Timer {
         id: searchDebounceTimer
-        interval: 200 // Wait 200ms before triggering search
+        interval: 200
         repeat: false
         onTriggered: {
             if (searchInput.text !== "Search" && searchInput.text !== "" && appController && appController.playlistController) {
@@ -99,7 +99,7 @@ Item {
         }
         function onPlaybackStateChanged() {
             if (appController && appController.playbackController) {
-                isPlaying = appController.playbackController.playbackState === 1; // 1 là PlayingState
+                isPlaying = appController.playbackController.playbackState === 1;
                 console.log("Playback state changed:", isPlaying ? "Playing" : "Paused/Stopped");
             }
         }
@@ -501,7 +501,7 @@ Item {
                 flat: true
                 onClicked: {
                     if (appController && appController.playbackController) {
-                        let newMode = (repeatMode + 1) % 3; // Cycle through 0, 1, 2
+                        let newMode = (repeatMode + 1) % 3;
                         appController.playbackController.setRepeatMode(newMode);
                         console.log("Repeat Button Clicked, mode:", newMode);
                     }
@@ -511,7 +511,7 @@ Item {
                     source: repeatMode === 1 ? "qrc:/Assets/repeat-one.png" : "qrc:/Assets/repeat.png"
                     width: controlIconSize * scaleFactor
                     height: controlIconSize * scaleFactor
-                    opacity: repeatMode > 0 ? 1.0 : 0.5 // Show when active, partially visible when inactive
+                    opacity: repeatMode > 0 ? 1.0 : 0.5
                 }
             }
         }

@@ -98,10 +98,9 @@ Item {
         return minutes + ":" + (secs < 10 ? "0" : "") + secs;
     }
 
-    // Debounce timer for search
     Timer {
         id: searchDebounceTimer
-        interval: 200 // Wait 200ms before triggering search
+        interval: 200
         repeat: false
         onTriggered: {
             if (searchInput.text !== "Search Songs" && searchInput.text.trim() !== "" && appController && appController.playlistController) {
@@ -151,7 +150,6 @@ Item {
         anchors.fill: parent
         color: "#ffffff"
 
-        // Hiển thị trạng thái tải
         Text {
             anchors.centerIn: parent
             text: "Loading media files..."
@@ -163,7 +161,7 @@ Item {
         ColumnLayout {
             anchors.fill: parent
             spacing: mediaSpacing * scaleFactor
-            visible: !isLoading // Chỉ hiển thị khi không đang tải
+            visible: !isLoading
 
             // Top Controls
             RowLayout {

@@ -1,6 +1,5 @@
 #pragma once
 #include <QObject>
-#include <QSharedPointer>
 #include <QMediaPlayer>
 #include <QAudioOutput>
 #include "Playlist.hpp"
@@ -22,9 +21,9 @@ class PlaybackController : public QObject
     Q_PROPERTY(bool muted READ muted WRITE setMuted NOTIFY mutedChanged)
 
 private:
-    QSharedPointer<Playlist> m_currentPlaylist;
+    Playlist *m_currentPlaylist;
     int m_currentMediaIndex;
-    QSharedPointer<MediaFile> m_currentMedia;
+    MediaFile *m_currentMedia;
     int m_volume;
     bool m_shuffle;
     int m_repeatMode; // 0: No repeat, 1: Repeat one, 2: Repeat all
@@ -37,7 +36,7 @@ public:
     ~PlaybackController();
 
     QString currentPlaylistName() const;
-    void setCurrentPlaylist(QSharedPointer<Playlist> playlist);
+    void setCurrentPlaylist(Playlist *playlist);
     int currentMediaIndex() const;
     void setCurrentMediaIndex(int index);
     QString currentMediaTitle() const;
@@ -60,7 +59,7 @@ public:
     Q_INVOKABLE void stop();
     Q_INVOKABLE void next();
     Q_INVOKABLE void previous();
-    Q_INVOKABLE void playMedia(QSharedPointer<Playlist> playlist, int index);
+    Q_INVOKABLE void playMedia(Playlist *playlist, int index);
 
 signals:
     void currentPlaylistChanged();

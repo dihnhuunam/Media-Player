@@ -8,7 +8,7 @@ class PlaylistManager : public QObject
     Q_OBJECT
 
 private:
-    QMap<QString, QSharedPointer<Playlist>> m_playlists;
+    QMap<QString, Playlist *> m_playlists;
 
 public:
     explicit PlaylistManager(QObject *parent = nullptr);
@@ -16,7 +16,7 @@ public:
 
     int playlistCount() const;
     QStringList playlistNames() const;
-    QSharedPointer<Playlist> playlist(const QString &playlistName) const;
+    Playlist *playlist(const QString &playlistName) const;
 
     Q_INVOKABLE void addPlaylist(const QString &name);
     Q_INVOKABLE void removePlaylist(const QString &name);

@@ -1,6 +1,5 @@
 #pragma once
 #include <QObject>
-#include <QSharedPointer>
 #include "PlaybackController.hpp"
 #include "PlaylistController.hpp"
 
@@ -11,13 +10,13 @@ class AppController : public QObject
     Q_PROPERTY(PlaylistController *playlistController READ playlistController CONSTANT)
 
 private:
-    QSharedPointer<PlaybackController> m_playbackController{new PlaybackController(this)};
-    QSharedPointer<PlaylistController> m_playlistController{new PlaylistController(this)};
+    PlaybackController *m_playbackController;
+    PlaylistController *m_playlistController;
 
 public:
     explicit AppController(QObject *parent = nullptr);
     ~AppController();
 
-    PlaybackController *playbackController() const { return m_playbackController.data(); }
-    PlaylistController *playlistController() const { return m_playlistController.data(); }
+    PlaybackController *playbackController() const { return m_playbackController; }
+    PlaylistController *playlistController() const { return m_playlistController; }
 };

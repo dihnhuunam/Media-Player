@@ -15,20 +15,21 @@ PlaylistController::~PlaylistController()
     // Disconnect all signals from PlaylistManager and its playlists
     if (m_playlistManager)
     {
-        disconnect(m_playlistManager.data(), nullptr, this, nullptr);
+        disconnect(m_playlistManager, nullptr, this, nullptr);
         for (const QString &playlistName : m_playlistManager->playlistNames())
         {
-            auto playlist = m_playlistManager->playlist(playlistName);
+            Playlist *playlist = m_playlistManager->playlist(playlistName);
             if (playlist)
             {
-                for (const auto &mediaFile : playlist->mediaFiles())
+                for (MediaFile *mediaFile : playlist->mediaFiles())
                 {
-                    disconnect(mediaFile.data(), nullptr, this, nullptr);
+                    disconnect(mediaFile, nullptr, this, nullptr);
                 }
             }
         }
+        delete m_playlistManager;
+        m_playlistManager = nullptr;
     }
-    m_playlistManager.reset();
     m_pendingMetadataCount.clear();
     qDebug() << "PlaylistController: Destroyed";
 }
@@ -109,12 +110,12 @@ QStringList PlaylistController::searchPlaylists(const QString &query)
     return result;
 }
 
-QSharedPointer<Playlist> PlaylistController::getPlaylist(const QString &name) const
+Playlist *PlaylistController::getPlaylist(const QString &name) const
 {
     if (!m_playlistManager)
     {
         qDebug() << "PlaylistController::getPlaylist - Error: PlaylistManager is null";
-        return QSharedPointer<Playlist>();
+        return nullptr;
     }
     return m_playlistManager->playlist(name);
 }
@@ -150,12 +151,12 @@ void PlaylistController::loadFolder(const QString &path)
         m_pendingMetadataCount["Default"] = filePaths.size();
 
         m_playlistManager->loadMediaFiles(filePaths, "Default");
-        auto playlist = m_playlistManager->playlist("Default");
+        Playlist *playlist = m_playlistManager->playlist("Default");
         if (playlist)
         {
-            for (const auto &mediaFile : playlist->mediaFiles())
+            for (MediaFile *mediaFile : playlist->mediaFiles())
             {
-                connect(mediaFile.data(), &MediaFile::metaDataChanged, this,
+                connect(mediaFile, &MediaFile::metaDataChanged, this,
                         [this, playlistName = QString("Default"), mediaFile]()
                         { onMediaMetaDataChanged(playlistName, mediaFile); });
             }
@@ -179,10 +180,10 @@ QVariantList PlaylistController::mediaFiles(const QString &playlistName) const
         return result;
     }
 
-    auto playlist = m_playlistManager->playlist(playlistName);
+    Playlist *playlist = m_playlistManager->playlist(playlistName);
     if (playlist)
     {
-        for (const auto &mediaFile : playlist->mediaFiles())
+        for (MediaFile *mediaFile : playlist->mediaFiles())
         {
             QVariantMap fileData;
             fileData["title"] = mediaFile->title();
@@ -214,12 +215,12 @@ void PlaylistController::addFilesToPlaylist(const QStringList &filePaths, const 
     m_pendingMetadataCount[playlistName] = absoluteFilePaths.size();
     m_playlistManager->loadMediaFiles(absoluteFilePaths, playlistName);
 
-    auto playlist = m_playlistManager->playlist(playlistName);
+    Playlist *playlist = m_playlistManager->playlist(playlistName);
     if (playlist)
     {
-        for (const auto &mediaFile : playlist->mediaFiles())
+        for (MediaFile *mediaFile : playlist->mediaFiles())
         {
-            connect(mediaFile.data(), &MediaFile::metaDataChanged, this,
+            connect(mediaFile, &MediaFile::metaDataChanged, this,
                     [this, playlistName, mediaFile]()
                     { onMediaMetaDataChanged(playlistName, mediaFile); });
         }
@@ -238,11 +239,11 @@ QVariantList PlaylistController::searchMediaFiles(const QString &query, const QS
         return result;
     }
 
-    auto playlist = m_playlistManager->playlist(playlistName);
+    Playlist *playlist = m_playlistManager->playlist(playlistName);
     if (playlist)
     {
         QString lowerQuery = query.toLower();
-        for (const auto &mediaFile : playlist->mediaFiles())
+        for (MediaFile *mediaFile : playlist->mediaFiles())
         {
             QString title = mediaFile->title().toLower();
             QString artist = mediaFile->artist().toLower();
@@ -273,9 +274,9 @@ QVariantList PlaylistController::searchMediaFiles(const QString &query)
     QString lowerQuery = query.toLower();
     for (const QString &playlistName : m_playlistManager->playlistNames())
     {
-        auto playlist = m_playlistManager->playlist(playlistName);
+        Playlist *playlist = m_playlistManager->playlist(playlistName);
         int index = 0;
-        for (const auto &mediaFile : playlist->mediaFiles())
+        for (MediaFile *mediaFile : playlist->mediaFiles())
         {
             QString title = mediaFile->title().toLower();
             QString artist = mediaFile->artist().toLower();
@@ -297,7 +298,7 @@ QVariantList PlaylistController::searchMediaFiles(const QString &query)
     return result;
 }
 
-void PlaylistController::onMediaMetaDataChanged(const QString &playlistName, QSharedPointer<MediaFile> mediaFile)
+void PlaylistController::onMediaMetaDataChanged(const QString &playlistName, MediaFile *mediaFile)
 {
     if (m_pendingMetadataCount.contains(playlistName))
     {

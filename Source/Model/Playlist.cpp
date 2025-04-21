@@ -8,6 +8,11 @@ Playlist::Playlist(const QString &name, QObject *parent)
 
 Playlist::~Playlist()
 {
+    for (MediaFile *media : m_mediaFiles)
+    {
+        delete media;
+    }
+    m_mediaFiles.clear();
 }
 
 QString Playlist::name() const
@@ -29,7 +34,7 @@ int Playlist::mediaCount() const
     return m_mediaFiles.size();
 }
 
-QSharedPointer<MediaFile> Playlist::mediaFileAt(int index) const
+MediaFile *Playlist::mediaFileAt(int index) const
 {
     if (index >= 0 && index < m_mediaFiles.size())
     {
@@ -38,7 +43,7 @@ QSharedPointer<MediaFile> Playlist::mediaFileAt(int index) const
     return nullptr;
 }
 
-QList<QSharedPointer<MediaFile>> Playlist::mediaFiles() const
+QList<MediaFile *> Playlist::mediaFiles() const
 {
     return m_mediaFiles;
 }
@@ -48,7 +53,7 @@ void Playlist::addMediaFile(const QString &filePath)
     QFileInfo fileInfo(filePath);
     if (fileInfo.exists())
     {
-        auto media = QSharedPointer<MediaFile>::create(filePath);
+        MediaFile *media = new MediaFile(filePath, this);
         m_mediaFiles.append(media);
         emit mediaFilesChanged();
     }
@@ -66,6 +71,7 @@ void Playlist::removeMediaFile(int index)
 {
     if (index >= 0 && index < m_mediaFiles.size())
     {
+        delete m_mediaFiles[index];
         m_mediaFiles.removeAt(index);
         emit mediaFilesChanged();
     }

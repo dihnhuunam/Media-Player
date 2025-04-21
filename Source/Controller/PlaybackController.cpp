@@ -22,11 +22,11 @@ PlaybackController::~PlaybackController()
     stop();
     if (m_currentMedia)
     {
-        disconnect(m_currentMedia.data(), nullptr, this, nullptr);
+        disconnect(m_currentMedia, nullptr, this, nullptr);
         m_currentMedia->stop();
-        m_currentMedia.reset();
+        m_currentMedia = nullptr;
     }
-    m_currentPlaylist.reset();
+    m_currentPlaylist = nullptr;
     qDebug() << "PlaybackController: Destroyed";
 }
 
@@ -35,18 +35,18 @@ QString PlaybackController::currentPlaylistName() const
     return m_currentPlaylist ? m_currentPlaylist->name() : "";
 }
 
-void PlaybackController::setCurrentPlaylist(QSharedPointer<Playlist> playlist)
+void PlaybackController::setCurrentPlaylist(Playlist *playlist)
 {
     if (m_currentPlaylist != playlist)
     {
         qDebug() << "PlaybackController: Setting new playlist";
         if (m_currentMedia)
         {
-            disconnect(m_currentMedia.data(), &MediaFile::playbackStateChanged, this, &PlaybackController::onMediaPlaybackStateChanged);
-            disconnect(m_currentMedia.data(), &MediaFile::positionChanged, this, &PlaybackController::onMediaPositionChanged);
+            disconnect(m_currentMedia, &MediaFile::playbackStateChanged, this, &PlaybackController::onMediaPlaybackStateChanged);
+            disconnect(m_currentMedia, &MediaFile::positionChanged, this, &PlaybackController::onMediaPositionChanged);
             disconnect(m_currentMedia->player(), &QMediaPlayer::mediaStatusChanged, this, &PlaybackController::onMediaFinished);
             m_currentMedia->stop();
-            m_currentMedia.reset();
+            m_currentMedia = nullptr;
             emit currentMediaChanged();
             emit positionChanged();
         }
@@ -78,11 +78,11 @@ void PlaybackController::setCurrentMediaIndex(int index)
 
     if (m_currentMedia)
     {
-        disconnect(m_currentMedia.data(), &MediaFile::playbackStateChanged, this, &PlaybackController::onMediaPlaybackStateChanged);
-        disconnect(m_currentMedia.data(), &MediaFile::positionChanged, this, &PlaybackController::onMediaPositionChanged);
+        disconnect(m_currentMedia, &MediaFile::playbackStateChanged, this, &PlaybackController::onMediaPlaybackStateChanged);
+        disconnect(m_currentMedia, &MediaFile::positionChanged, this, &PlaybackController::onMediaPositionChanged);
         disconnect(m_currentMedia->player(), &QMediaPlayer::mediaStatusChanged, this, &PlaybackController::onMediaFinished);
         m_currentMedia->stop();
-        m_currentMedia.reset();
+        m_currentMedia = nullptr;
     }
 
     m_currentMediaIndex = index;
@@ -92,8 +92,8 @@ void PlaybackController::setCurrentMediaIndex(int index)
     {
         m_currentMedia->player()->audioOutput()->setVolume(m_muted ? 0 : m_volume / 100.0);
 
-        connect(m_currentMedia.data(), &MediaFile::playbackStateChanged, this, &PlaybackController::onMediaPlaybackStateChanged);
-        connect(m_currentMedia.data(), &MediaFile::positionChanged, this, &PlaybackController::onMediaPositionChanged);
+        connect(m_currentMedia, &MediaFile::playbackStateChanged, this, &PlaybackController::onMediaPlaybackStateChanged);
+        connect(m_currentMedia, &MediaFile::positionChanged, this, &PlaybackController::onMediaPositionChanged);
         connect(m_currentMedia->player(), &QMediaPlayer::mediaStatusChanged, this, &PlaybackController::onMediaFinished);
     }
 
@@ -313,7 +313,7 @@ void PlaybackController::previous()
     }
 }
 
-void PlaybackController::playMedia(QSharedPointer<Playlist> playlist, int index)
+void PlaybackController::playMedia(Playlist *playlist, int index)
 {
     if (!playlist || index < 0 || index >= playlist->mediaCount())
     {

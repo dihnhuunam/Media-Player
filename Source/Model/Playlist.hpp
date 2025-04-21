@@ -1,5 +1,5 @@
 #pragma once
-#include <QSharedPointer>
+#include <QList>
 #include <QObject>
 #include "MediaFile.hpp"
 
@@ -9,7 +9,7 @@ class Playlist : public QObject
 
 private:
     QString m_name;
-    QList<QSharedPointer<MediaFile>> m_mediaFiles;
+    QList<MediaFile *> m_mediaFiles;
 
 public:
     explicit Playlist(const QString &name = "Unknown Playlist Name", QObject *parent = nullptr);
@@ -18,8 +18,8 @@ public:
     QString name() const;
     void setName(const QString &name);
     int mediaCount() const;
-    QSharedPointer<MediaFile> mediaFileAt(int index) const;
-    QList<QSharedPointer<MediaFile>> mediaFiles() const;
+    MediaFile *mediaFileAt(int index) const;
+    QList<MediaFile *> mediaFiles() const;
 
     Q_INVOKABLE void addMediaFile(const QString &filePath);
     Q_INVOKABLE void addMediaFiles(const QStringList &filePaths);

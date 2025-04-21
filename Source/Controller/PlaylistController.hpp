@@ -1,6 +1,5 @@
 #pragma once
 #include <QObject>
-#include <QSharedPointer>
 #include <QVariantList>
 #include <QMap>
 #include "PlaylistManager.hpp"
@@ -13,7 +12,7 @@ class PlaylistController : public QObject
     Q_PROPERTY(int playlistCount READ playlistCount NOTIFY playlistsChanged)
 
 private:
-    QSharedPointer<PlaylistManager> m_playlistManager;
+    PlaylistManager *m_playlistManager;
     QMap<QString, int> m_pendingMetadataCount;
 
 public:
@@ -25,7 +24,7 @@ public:
     Q_INVOKABLE void removePlaylist(const QString &name);
     Q_INVOKABLE void renamePlaylist(const QString &oldName, const QString &newName);
     Q_INVOKABLE QStringList searchPlaylists(const QString &query);
-    Q_INVOKABLE QSharedPointer<Playlist> getPlaylist(const QString &name) const;
+    Q_INVOKABLE Playlist *getPlaylist(const QString &name) const;
 
     // Media file management methods
     Q_INVOKABLE void loadFolder(const QString &path);
@@ -44,5 +43,5 @@ signals:
     void mediaFilesLoaded(const QString &playlistName);
 
 private slots:
-    void onMediaMetaDataChanged(const QString &playlistName, QSharedPointer<MediaFile> mediaFile);
+    void onMediaMetaDataChanged(const QString &playlistName, MediaFile *mediaFile);
 };

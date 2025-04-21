@@ -30,9 +30,9 @@ public:
     qint64 position() const;
     QMediaPlayer::PlaybackState playbackState() const;
 
-    Q_INVOKABLE void play();
-    Q_INVOKABLE void pause();
-    Q_INVOKABLE void stop();
+    void play();
+    void pause();
+    void stop();
 
 signals:
     void metaDataChanged();

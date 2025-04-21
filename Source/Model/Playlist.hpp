@@ -21,9 +21,9 @@ public:
     MediaFile *mediaFileAt(int index) const;
     QList<MediaFile *> mediaFiles() const;
 
-    Q_INVOKABLE void addMediaFile(const QString &filePath);
-    Q_INVOKABLE void addMediaFiles(const QStringList &filePaths);
-    Q_INVOKABLE void removeMediaFile(int index);
+    void addMediaFile(const QString &filePath);
+    void addMediaFiles(const QStringList &filePaths);
+    void removeMediaFile(int index);
 
 signals:
     void nameChanged();

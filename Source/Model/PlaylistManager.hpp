@@ -18,10 +18,10 @@ public:
     QStringList playlistNames() const;
     Playlist *playlist(const QString &playlistName) const;
 
-    Q_INVOKABLE void addPlaylist(const QString &name);
-    Q_INVOKABLE void removePlaylist(const QString &name);
-    Q_INVOKABLE void renamePlaylist(const QString &oldName, const QString &newName);
-    Q_INVOKABLE void loadMediaFiles(const QStringList &files, const QString &playlistName);
+    void addPlaylist(const QString &name);
+    void removePlaylist(const QString &name);
+    void renamePlaylist(const QString &oldName, const QString &newName);
+    void loadMediaFiles(const QStringList &files, const QString &playlistName);
 
 signals:
     void playlistsChanged();

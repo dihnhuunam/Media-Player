@@ -270,6 +270,82 @@ Item {
                         }
                     }
                 }
+
+                // Profile Button
+                HoverButton {
+                    id: profileButton
+                    Layout.preferredWidth: topControlButtonSize * scaleFactor
+                    Layout.preferredHeight: topControlButtonSize * scaleFactor
+                    flat: true
+                    onClicked: profileMenu.open()
+                    Image {
+                        source: "qrc:/Assets/profile.png"
+                        width: topControlIconSize * scaleFactor
+                        height: topControlIconSize * scaleFactor
+                        anchors.centerIn: parent
+                    }
+                }
+
+                // Profile Dropdown Menu
+                Menu {
+                    id: profileMenu
+                    x: profileButton.x
+                    y: profileButton.y + profileButton.height
+                    width: 200 * scaleFactor
+
+                    background: Rectangle {
+                        color: "#ffffff"
+                        border.color: "#e0e0e0"
+                        border.width: 1
+                        radius: 5
+                    }
+
+                    MenuItem {
+                        text: "View Details Account"
+                        contentItem: Text {
+                            text: parent.text
+                            font.pixelSize: 16 * scaleFactor
+                            color: "#333333"
+                            verticalAlignment: Text.AlignVCenter
+                            horizontalAlignment: Text.AlignLeft
+                            leftPadding: 10
+                        }
+                        onTriggered: {
+                            console.log("View Details Account clicked");
+                            // Logic sẽ được triển khai ở Qt C++
+                        }
+                    }
+                    MenuItem {
+                        text: "Setting"
+                        contentItem: Text {
+                            text: parent.text
+                            font.pixelSize: 16 * scaleFactor
+                            color: "#333333"
+                            verticalAlignment: Text.AlignVCenter
+                            horizontalAlignment: Text.AlignLeft
+                            leftPadding: 10
+                        }
+                        onTriggered: {
+                            console.log("Setting clicked");
+                            // Logic sẽ được triển khai ở Qt C++
+                        }
+                    }
+                    MenuItem {
+                        text: "Logout"
+                        contentItem: Text {
+                            text: parent.text
+                            font.pixelSize: 16 * scaleFactor
+                            color: "#333333"
+                            verticalAlignment: Text.AlignVCenter
+                            horizontalAlignment: Text.AlignLeft
+                            leftPadding: 10
+                        }
+                        onTriggered: {
+                            stackView.replace("qrc:/Source/View/LoginView.qml");
+                            console.log("Logout clicked, navigated to LoginView");
+                        }
+                    }
+                }
             }
 
             // 2. Search Result
@@ -431,7 +507,7 @@ Item {
                     source: "qrc:/Assets/shuffle.png"
                     width: controlIconSize * scaleFactor
                     height: controlIconSize * scaleFactor
-                    opacity: shuffle ? 1.0 : 0.5 // Show when active, partially visible when inactive
+                    opacity: shuffle ? 1.0 : 0.5
                 }
             }
 

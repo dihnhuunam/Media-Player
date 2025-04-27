@@ -17,6 +17,6 @@ ApplicationWindow {
         anchors.fill: parent
         Layout.fillWidth: true
         Layout.fillHeight: true
-        initialItem: "qrc:/Source/View/MediaPlayerView.qml"
+        initialItem: "qrc:/Source/View/LoginView.qml"
     }
 }

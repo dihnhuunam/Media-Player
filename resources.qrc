@@ -20,6 +20,7 @@
         <file>Assets/playlist.png</file>
         <file>Assets/more.png</file>
         <file>Assets/muted.png</file>
+        <file>Assets/profile.png</file>
         <!-- Components -->
         <file>Source/View/Components/HoverButton.qml</file>
         <file>Source/View/Components/SliderComponent.qml</file>
@@ -28,5 +29,7 @@
         <file>Source/View/MediaPlayerView.qml</file>
         <file>Source/View/PlaylistView.qml</file>
         <file>Source/View/MediaFileView.qml</file>
+        <file>Source/View/LoginView.qml</file>
+        <file>Source/View/RegisterView.qml</file>
     </qresource>
 </RCC>

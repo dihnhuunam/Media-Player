@@ -4,20 +4,20 @@ import QtQuick.Layouts
 import "Components"
 
 Item {
-    property real scaleFactor: parent ? Math.min(parent.width / 1024, parent.height / 600) : 1.0
+    property real scaleFactor: parent ? Math.min(parent.width / 1280, parent.height / 720) : 1.0
 
     // Properties for Top Controls
-    property real topControlButtonSize: 90
-    property real topControlIconSize: 45
-    property real topControlSpacing: 30
-    property real topControlMargin: 20
+    property real topControlButtonSize: 80
+    property real topControlIconSize: 40
+    property real topControlSpacing: 25
+    property real topControlMargin: 15
 
     // Properties for Form
-    property real formFieldHeight: 60
-    property real formFieldFontSize: 24
-    property real formSpacing: 20
-    property real formMargin: 30
-    property real formWidth: 400
+    property real formFieldHeight: 50
+    property real formFieldFontSize: 20
+    property real formSpacing: 15
+    property real formMargin: 25
+    property real formWidth: 350
 
     Rectangle {
         anchors.fill: parent
@@ -59,11 +59,34 @@ Item {
                 }
             }
 
+            // Username Field
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: formFieldHeight * scaleFactor
+                radius: 25 * scaleFactor
+                color: "#e0e0e0"
+
+                TextField {
+                    id: usernameField
+                    anchors.fill: parent
+                    anchors.margins: 8 * scaleFactor
+                    font.pixelSize: formFieldFontSize * scaleFactor
+                    color: "#333333"
+                    placeholderText: "Username"
+                    placeholderTextColor: "#666666"
+                    verticalAlignment: Text.AlignVCenter
+                    background: null
+                    onFocusChanged: {
+                        console.log("Username field focus:", focus);
+                    }
+                }
+            }
+
             // Full Name Field
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: formFieldHeight * scaleFactor
-                radius: 30 * scaleFactor
+                radius: 25 * scaleFactor
                 color: "#e0e0e0"
 
                 TextField {
@@ -86,7 +109,7 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: formFieldHeight * scaleFactor
-                radius: 30 * scaleFactor
+                radius: 25 * scaleFactor
                 color: "#e0e0e0"
 
                 TextField {
@@ -105,34 +128,11 @@ Item {
                 }
             }
 
-            // Username Field
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: formFieldHeight * scaleFactor
-                radius: 30 * scaleFactor
-                color: "#e0e0e0"
-
-                TextField {
-                    id: usernameField
-                    anchors.fill: parent
-                    anchors.margins: 8 * scaleFactor
-                    font.pixelSize: formFieldFontSize * scaleFactor
-                    color: "#333333"
-                    placeholderText: "Username"
-                    placeholderTextColor: "#666666"
-                    verticalAlignment: Text.AlignVCenter
-                    background: null
-                    onFocusChanged: {
-                        console.log("Username field focus:", focus);
-                    }
-                }
-            }
-
             // Password Field
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: formFieldHeight * scaleFactor
-                radius: 30 * scaleFactor
+                radius: 25 * scaleFactor
                 color: "#e0e0e0"
 
                 TextField {
@@ -156,7 +156,7 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: formFieldHeight * scaleFactor
-                radius: 30 * scaleFactor
+                radius: 25 * scaleFactor
                 color: "#e0e0e0"
 
                 TextField {
@@ -183,7 +183,7 @@ Item {
                 text: "Register"
                 flat: false
                 background: Rectangle {
-                    radius: 30 * scaleFactor
+                    radius: 25 * scaleFactor
                     color: "#e0e0e0"
                 }
                 contentItem: Text {
@@ -202,7 +202,7 @@ Item {
             // Login Link
             Text {
                 text: "Already have an account? Login"
-                font.pixelSize: 16 * scaleFactor
+                font.pixelSize: 14 * scaleFactor
                 color: "#0078D7"
                 Layout.alignment: Qt.AlignHCenter
                 MouseArea {

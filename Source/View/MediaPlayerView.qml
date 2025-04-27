@@ -291,7 +291,7 @@ Item {
                     id: profileMenu
                     x: profileButton.x
                     y: profileButton.y + profileButton.height
-                    width: 200 * scaleFactor
+                    width: 180 * scaleFactor
 
                     background: Rectangle {
                         color: "#ffffff"

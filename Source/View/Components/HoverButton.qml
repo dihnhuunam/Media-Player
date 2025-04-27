@@ -1,5 +1,5 @@
-import QtQuick 
-import QtQuick.Controls 
+import QtQuick
+import QtQuick.Controls
 
 Button {
     id: hoverButton
@@ -11,7 +11,7 @@ Button {
     property real imageHeight: 30
     property color hoverColor: "#f0f0f0"
     property color defaultColor: "transparent"
-    property real hoverScale: 1.1
+    property real hoverScale: 1.05
     property real defaultScale: 1.0
     property int animationDuration: 150
     property bool showBorder: true
